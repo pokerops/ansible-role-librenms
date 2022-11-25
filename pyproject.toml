@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "wpnops.librenms"
+version = "0.0.6"
+description = ""
+authors = ["Carlos Gonzalez <carlos1312@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ansible = "^6.6.0"
+ansible-lint = "^6.8.6"
+MarkupSafe = "2.0.1"
+netaddr = "^0.8.0"
+molecule = {extras = ["molecule-podman", "podman"], version = "^4.0.3"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
