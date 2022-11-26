@@ -5,6 +5,5 @@ roles:
   - geerlingguy.nginx
   - geerlingguy.mysql
   - geerlingguy.php
-  - geerlingguy.php-versions
 collections:
   - containers.podman

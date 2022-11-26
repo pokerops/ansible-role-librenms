@@ -23,5 +23,3 @@ dependencies:
     when: false
   - role: geerlingguy.php
     when: false
-  - role: geerlingguy.php-versions
-    when: false
