@@ -9,7 +9,7 @@
 
     - name: update apt cache.
       apt:
-        update_cache: tue
+        update_cache: yes
       when: (ansible_os_family | lower) == 'debian'
       failed_when: false
       ignore_errors: true

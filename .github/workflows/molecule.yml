@@ -43,10 +43,8 @@ jobs:
       matrix:
         scenario:
           - default
-          - users
         distro:
           - ubuntu2004
-          - ubuntu2204
 
     steps:
 
@@ -71,6 +69,13 @@ jobs:
 
       - name: configure podman registry
         run: poetry run ansible -b -m lineinfile localhost -a "path=/etc/containers/registries.conf line='unqualified-search-registries = [\"docker.io\"]'"
+
+      - name: disable apparmor
+        run: |
+            set -x
+            sudo apt-get install apparmor-profiles
+            sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+            sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
 
       - name: run molecule tests
         run: poetry run molecule test -s ${{ matrix.scenario }}

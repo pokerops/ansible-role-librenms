@@ -42,3 +42,4 @@ You can test the role directly from sources using the following commands
 ## License
 
 This project is licensed under the terms of the [MIT License](/LICENSE)
+

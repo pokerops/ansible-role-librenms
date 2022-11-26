@@ -9,13 +9,27 @@ platforms:
     tmpfs:
       - /run
       - /tmp
-    privileged: true
     volumes:
       - "/sys/fs/cgroup:/sys/fs/cgroup:ro"
     capabilities:
       - SYS_ADMIN
     command: ${MOLECULE_IMAGE_COMMAND:-"/lib/systemd/systemd"}
     pre_build_image: true
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
 provisioner:
   name: ansible
   log: true
@@ -29,5 +43,3 @@ provisioner:
         librenms_db_name: librenms
 verifier:
   name: ansible
-scenario:
-  name: default

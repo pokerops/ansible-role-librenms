@@ -40,7 +40,8 @@
     mysql_packages: "{{ _librenms_mysql_packages }}"
     mysql_databases:
       - name: "{{ librenms_db_name }}"
-        collation: utf8_unicode_ci
+        collation: utf8mb4_unicode_ci
+        encoding: utf8mb4
     mysql_users:
       - name: "{{ librenms_db_user }}"
         password: "{{ librenms_db_pass }}"
@@ -50,9 +51,9 @@
   ansible.builtin.lineinfile:
     path: "{{ _librenms_mysql_config_path }}"
     insertafter: '\[mysqld\]'
-    regexp: '^#?{{ item | split_with("=") | first }}\s*='
+    regexp: '^#?{{ item | split("=") | first }} *='
     line: "{{ item }}"
-  loop:
+  with_items:
     - 'lower_case_table_names=0'
     - 'innodb_file_per_table=1'
   notify: restart mysql
@@ -60,11 +61,18 @@
 - name: flush_handlers
   ansible.builtin.meta: flush_handlers
 
+- name: install php version
+  ansible.builtin.include_role:
+    name: geerlingguy.php-versions
+  vars:
+    php_version: "{{ _librenms_php_version }}"
+
 - name: install php
   ansible.builtin.include_role:
     name: geerlingguy.php
   vars:
-    php_webserver_daemon: "{{ librenms_php_webserver_daemon }}"
+    php_default_version_debian: "{{ _librenms_php_version }}"
+    php_enable_webserver: false
     php_use_managed_ini: "{{ librenms_php_use_managed_ini }}"
     php_memory_limit: "{{ librenms_php_memory_limit }}"
     php_packages_extra: "{{ _librenms_php_packages_extra }}"
@@ -142,6 +150,7 @@
 
 - name: remove git config safe directories
   ansible.builtin.command: git config --global --unset-all safe.directory
+  changed_when: false
   when: _gitconfig.stdout != ""
 
 - name: add git repos to safe directories
