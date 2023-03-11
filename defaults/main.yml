@@ -1,4 +1,9 @@
 ---
+librenms_server_install: false
+librenms_backup: "{{ librenms_server_install }}"
+librenms_client_install: true
+librenms_client_register: "{{ librenms_client_install }}"
+
 librenms_packages_default:
   debian:
     - acl
@@ -25,6 +30,7 @@ librenms_packages_default:
   default: []
 
 librenms_url: "http://localhost"
+librenms_nolog: true
 
 librenms_root: /opt/librenms
 librenms_hostname: "{{ librenms_url | urlsplit('hostname') }}"
@@ -57,6 +63,7 @@ librenms_php_packages_default:
     - "php{{ _librenms_php_version }}-zip"
     - "php{{ _librenms_php_version }}-ldap"
     - "php{{ _librenms_php_version }}-gmp"
+    - "php{{ _librenms_php_version }}-apcu"
 
   default: []
 librenms_php_ini_timezone_default:
@@ -144,10 +151,8 @@ librenms_admin_user: "{{ librenms_db_user }}"
 librenms_admin_pass: "{{ librenms_db_pass }}"
 librenms_admin_email: "admin@example.com"
 
-librenms_nfs_server: no
-
 librenms_php_webserver_daemon: nginx
-librenms_php_use_managed_ini: no
+librenms_php_use_managed_ini: false
 librenms_php_version_default:
   default: 8.2
 librenms_php_timezone: "UTC"
@@ -172,5 +177,23 @@ librenms_ldap_pass: "ChangeMe01!"
 librenms_ldap_admingroup: ""
 librenms_ldap_usergroup: ""
 librenms_update_channel: "release"
-librenms_oxidized_backend_proto: http
-librenms_oxidized_backend_port: 8888
+librenms_oxidized_backend_proto: "http"
+librenms_oxidized_backend_port: "8888"
+
+librenms_client_hostname: "{{ ansible_default_ipv4.address }}"
+librenms_client_display: "{{ inventory_hostname }}"
+librenms_client_state: 'present'
+librenms_client_snmp_port: 161
+librenms_client_snmp_install: true
+librenms_client_snmp_version: "v2c"
+librenms_client_snmp_community: "public"
+librenms_client_snmp_location: ""
+librenms_client_snmp_contact: ""
+librenms_client_snmp_conf_include: |
+  includeAllDisks 10%
+librenms_client_snmp_authname: "librenms"
+librenms_client_snmp_authlevel: "authPriv"
+librenms_client_snmp_authalgo: "SHA"
+librenms_client_snmp_authpass: "password"
+librenms_client_snmp_cryptoalgo: "SHA"
+librenms_client_snmp_cryptopass: "password"

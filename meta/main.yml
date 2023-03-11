@@ -14,9 +14,7 @@ galaxy_info:
 dependencies:
   - role: nephelaiio.plugins
   - role: nephelaiio.nfs
-    vars:
-      nfs_server: "{{ librenms_nfs_server }}"
-    when: librenms_backup | default(true)
+    when: false
   - role: geerlingguy.nginx
     when: false
   - role: geerlingguy.mysql

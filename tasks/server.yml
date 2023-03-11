@@ -1,0 +1,358 @@
+---
+- name: include variable overrides
+  ansible.builtin.set_fact:
+    _librenms_packages: "{{ librenms_package | default(librenms_packages_default | sorted_get(overrides)) }}"
+    _librenms_mysql_packages: "{{ librenms_mysql_packages | default(librenms_mysql_packages_default | sorted_get(overrides)) }}"
+    _librenms_php_version: "{{ librenms_php_version | default(librenms_php_version_default | sorted_get(overrides)) }}"
+    _librenms_mysql_config_path: "{{ librenms_mysql_config_path | default(librenms_mysql_config_path_default | sorted_get(overrides)) }}"
+  vars:
+    overrides:
+      - "{{ ansible_distribution | lower }}-{{ ansible_distribution_release | lower }}"
+      - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}"
+      - "{{ ansible_distribution | lower }}"
+      - "{{ ansible_os_family | lower }}"
+      - "default"
+  tags:
+    - always
+
+- name: php version validation
+  ansible.builtin.fail:
+    msg: "PHP version 8.1.x is the minimun supported version."
+  when: _librenms_php_version is version('8.1', operator='lt')
+
+- name: set php packages
+  ansible.builtin.set_fact:
+    _librenms_php_packages: "{{ librenms_php_packages | default(librenms_php_packages_default | sorted_get(overrides)) }}"
+    _librenms_php_ini_timezone: "{{ librenms_php_ini_timezone | default(librenms_php_ini_timezone_default | sorted_get(overrides)) }}"
+  vars:
+    overrides:
+      - "{{ ansible_distribution | lower }}-{{ ansible_distribution_release | lower }}"
+      - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}"
+      - "{{ ansible_distribution | lower }}"
+      - "{{ ansible_os_family | lower }}"
+      - "default"
+  tags:
+    - always
+
+- name: inspect packages
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: install nfs
+  ansible.builtin.include_role:
+    name: nephelaiio.nfs
+  vars:
+    nfs_server: false
+  when: librenms_backup | bool
+
+- name: install mysql
+  ansible.builtin.include_role:
+    name: geerlingguy.mysql
+  vars:
+    mysql_packages: "{{ _librenms_mysql_packages }}"
+    mysql_databases:
+      - name: "{{ librenms_db_name }}"
+        collation: utf8mb4_unicode_ci
+        encoding: utf8mb4
+    mysql_users:
+      - name: "{{ librenms_db_user }}"
+        password: "{{ librenms_db_pass }}"
+        priv: "{{ librenms_db_name }}.*:ALL"
+
+- name: disable mysql strict mode
+  ansible.builtin.lineinfile:
+    path: "{{ _librenms_mysql_config_path }}"
+    insertafter: '\[mysqld\]'
+    regexp: '^#?{{ item | split("=") | first }} *='
+    line: "{{ item }}"
+  with_items:
+    - 'lower_case_table_names=0'
+    - 'innodb_file_per_table=1'
+  notify: restart mysql
+
+- name: flush_handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: include geerlingguy.php-versions role
+  ansible.builtin.include_role:
+    name: geerlingguy.php-versions
+  vars:
+    php_version: "{{ _librenms_php_version }}"
+    php_packages: "{{ _librenms_php_packages }}"
+
+- name: install php
+  ansible.builtin.include_role:
+    name: geerlingguy.php
+  vars:
+    php_enable_webserver: false
+    php_use_managed_ini: "{{ librenms_php_use_managed_ini }}"
+    php_memory_limit: "{{ librenms_php_memory_limit }}"
+    php_packages: "{{ _librenms_php_packages }}"
+
+- name: set php timezone
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: ';?date.timezone\s*='
+    line: "date.timezone = {{ librenms_php_timezone }}"
+  loop: "{{ _librenms_php_ini_timezone }}"
+  notify:
+    - restart fpm
+
+- name: enable php mcrypt
+  ansible.builtin.command: phpenmod mcrypt
+  changed_when: false
+  when: (ansible_os_family | lower == 'debian')
+
+- name: start fpm
+  ansible.builtin.service:
+    name: "php{{ _librenms_php_version }}-fpm"
+    state: started
+    enabled: true
+
+- name: install librenms packages
+  ansible.builtin.package:
+    name: "{{ _librenms_packages }}"
+
+- name: install nginx
+  ansible.builtin.include_role:
+    name: geerlingguy.nginx
+  vars:
+    nginx_remove_default_vhost: true
+    nginx_vhosts: "{{ librenms_nginx_vhosts }}"
+    nginx_user: "{{ librenms_nginx_user }}"
+    nginx_group: "{{ librenms_nginx_group }}"
+    nginx_conf_dir: "{{ librenms_nginx_conf_dir }}"
+    nginx_certificate_hostname: "{{ librenms_nginx_certificate_hostname }}"
+    nginx_certificate_chainfile: "{{ librenms_nginx_certificate_chainfile }}"
+    nginx_certificate_keyfile: "{{ librenms_nginx_certificate_keyfile }}"
+  when: librenms_nginx_install | default(true)
+
+- name: create librenms group
+  ansible.builtin.group:
+    name: "{{ librenms_group }}"
+
+- name: manage librenms group memberships
+  ansible.builtin.user:
+    append: true
+    name: "{{ librenms_nginx_user }}"
+    groups: "{{ librenms_group }}"
+  notify:
+    - restart fpm
+    - restart nginx
+
+- name: create librenms user
+  ansible.builtin.user:
+    name: "{{ librenms_user }}"
+    group: "{{ librenms_group }}"
+    groups: "{{ librenms_nginx_group }}"
+    system: true
+
+- name: create librenms root folder
+  ansible.builtin.file:
+    path: "{{ librenms_root }}"
+    owner: "{{ librenms_user }}"
+    group: "{{ librenms_group }}"
+    state: directory
+    mode: 0770
+  changed_when: false
+
+- name: retrieve safe directory list from git config
+  ansible.builtin.command: git config --get-all safe.directory  # noqa command-instead-of-module
+  failed_when: false
+  changed_when: false
+  register: _gitconfig
+
+- name: remove git config safe directories
+  ansible.builtin.command: git config --global --unset-all safe.directory  # noqa command-instead-of-module
+  changed_when: false
+  when: _gitconfig.stdout != ""
+
+- name: add git repos to safe directories
+  ansible.builtin.command: "git config --global --add safe.directory {{ item }}"  # noqa command-instead-of-module
+  changed_when: false
+  loop:
+    - "{{ librenms_root }}"
+
+- name: clone librenms repository
+  ansible.builtin.git:
+    repo: "{{ librenms_repo_url }}"
+    dest: "{{ librenms_root }}"
+    version: "{{ librenms_release }}"
+    force: true
+  changed_when: false
+
+- name: fix librenms repository owner
+  ansible.builtin.file:
+    path: "{{ librenms_root }}"
+    owner: "{{ librenms_user }}"
+    group: "{{ librenms_group }}"
+    mode: 0771
+    state: directory
+  changed_when: false
+
+- name: set librenms subfolder permissions
+  ansible.posix.acl:
+    path: "{{ item }}"
+    etype: group
+    permissions: rwx
+    default: true
+    recursive: true
+    state: present
+  loop:
+    - "{{ librenms_root }}/rrd"
+    - "{{ librenms_root }}/logs"
+    - "{{ librenms_root }}/bootstrap/cache"
+    - "{{ librenms_root }}/storage/"
+  changed_when: false
+
+- name: manage librenms configuration
+  ansible.builtin.template:
+    src: config.php.j2
+    dest: "{{ librenms_root }}/config.php"
+    mode: 0750
+  vars:
+    librenms_config_db_name: "{{ librenms_db_name }}"
+    librenms_config_db_user: "{{ librenms_db_user }}"
+    librenms_config_db_pass: "{{ librenms_db_pass }}"
+    librenms_config_root: "{{ librenms_root }}"
+    librenms_config_url: "{{ librenms_url }}"
+    librenms_config_ldap_servers: "{{ librenms_ldap_servers }}"
+    librenms_config_ldap_domain: "{{ librenms_ldap_domain }}"
+    librenms_config_ldap_user: "{{ librenms_ldap_user }}"
+    librenms_config_ldap_pass: "{{ librenms_ldap_pass }}"
+    librenms_config_ldap_admingroup: "{{ librenms_ldap_admingroup }}"
+    librenms_config_ldap_usergroup: "{{ librenms_ldap_usergroup }}"
+    librenms_config_update_channel: "{{ librenms_update_channel }}"
+    oxidized_backend_proto: "{{ librenms_oxidized_backend_proto }}"
+    oxidized_backend_port: "{{ librenms_oxidized_backend_port }}"
+  notify:
+    - restart fpm
+    - restart nginx
+
+- name: set librenms folder write permissions
+  ansible.builtin.command: "chown -R {{ librenms_user }}:{{ librenms_group }} {{ librenms_root }}"
+  tags:
+    - skip_ansible_lint
+  changed_when: false
+
+- name: install librenms dependencies
+  ansible.builtin.command: |
+    {{ librenms_root }}/scripts/composer_wrapper.php install --no-dev
+  args:
+    creates: "{{ librenms_root }}/composer.phar"
+  become_user: "{{ librenms_user }}"
+  notify:
+    - restart fpm
+
+- name: run librenms daily
+  ansible.builtin.command: "{{ librenms_root }}/daily.sh"
+  become_user: "{{ librenms_user }}"
+  changed_when: false
+
+- name: get list of current librenms users
+  ansible.builtin.command: "mysql -u{{ librenms_db_user }} -p{{ librenms_db_pass }} {{ librenms_db_name }} -e 'SELECT username FROM users'"
+  register: librenms_user_list
+  changed_when: false
+
+- name: create librenms admin user
+  ansible.builtin.command: "php {{ librenms_root }}/adduser.php {{ librenms_admin_user }} {{ librenms_admin_pass }} 10 {{ librenms_admin_email }}"
+  become_user: "{{ librenms_user }}"
+  when: "librenms_admin_user not in librenms_user_list.stdout_lines"
+  register: librenms_add_admin_user_result
+  changed_when: "'already exists' not in librenms_add_admin_user_result.stdout"
+
+- name: cron job for cleaup database daily
+  ansible.builtin.cron:
+    name: cleanupDB
+    job: "{{ librenms_root }}/daily.sh"
+    special_time: daily
+    user: "{{ librenms_user }}"
+
+- name: manage cronjob config
+  ansible.builtin.copy:
+    src: "{{ librenms_root }}/librenms.nonroot.cron"
+    dest: /etc/cron.d/librenms
+    remote_src: true
+    group: root
+    owner: root
+    mode: 0644
+  notify: restart cron
+
+- name: manage logrotate config
+  ansible.builtin.copy:
+    src: "{{ librenms_root }}/misc/librenms.logrotate"
+    dest: /etc/logrotate.d/librenms
+    remote_src: true
+    group: root
+    owner: root
+    mode: 0644
+
+- name: create librenm directories
+  ansible.builtin.file:
+    path: "{{ librenms_backup_target }}"
+    state: directory
+    mode: 0755
+
+- name: manage librenms backups
+  when: librenms_backup
+  block:
+
+    - name: create librenms backup script
+      ansible.builtin.template:
+        src: librenms-backup.sh.j2
+        dest: "{{ librenms_backup_bin }}"
+        group: root
+        owner: root
+        mode: 0750
+      vars:
+        backup_identifier: "{{ librenms_backup_identifier }}"
+        backup_path: "{{ librenms_backup_target }}"
+        backup_source: "{{ librenms_root }}/config.php {{ librenms_root }}/rrd {{ librenms_root }}/.env"
+        mysql_user: "{{ librenms_db_user }}"
+        mysql_pass: "{{ librenms_db_pass }}"
+        mysql_db: "{{ librenms_db_name }}"
+        retention_period: "{{ librenms_backup_retention_period }}"
+
+    - name: create librenms restore script
+      ansible.builtin.template:
+        src: librenms-restore.sh.j2
+        dest: "{{ librenms_restore_bin }}"
+        group: root
+        owner: root
+        mode: 0750
+      vars:
+        backup_identifier: "{{ librenms_backup_identifier }}"
+        backup_path: "{{ librenms_backup_target }}"
+        mysql_user: "{{ librenms_db_user }}"
+        mysql_pass: "{{ librenms_db_pass }}"
+        mysql_db: "{{ librenms_db_name }}"
+
+    - name: manage librenms backup cronjob
+      ansible.builtin.cron:
+        name: librenms-conf-backup
+        job: "{{ librenms_backup_bin }}"
+        special_time: daily
+
+    - name: create librenms backup motd pointers
+      ansible.builtin.copy:
+        dest: /etc/update-motd.d/99-librenms
+        content: |
+          #!/usr/bin/env bash
+          echo
+          echo run librenms-backup to manually force librenms backup creation
+          echo run librenms-restore to manually restore latest librenms backup
+          echo
+        mode: 0755
+
+- name: flush_handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: run librenms validate
+  ansible.builtin.command: "{{ librenms_root }}/validate.php"
+  register: _validate_output
+  become_user: "{{ librenms_user }}"
+  changed_when: false
+
+- name: validate librenms installation
+  ansible.builtin.debug:
+    var: _validate_output.stdout_lines

@@ -1,0 +1,113 @@
+---
+- name: query librenms devices
+  ansible.builtin.uri:
+    url: "{{ librenms_url }}/api/v0/devices?type=all"
+    headers:
+      X-Auth-Token: "{{ librenms_api_token }}"
+    return_content: yes
+    validate_certs: no
+  register: librenms_devices
+  tags: always
+
+- name: map librenms registrations
+  ansible.builtin.set_fact:
+    librenms_hostnames: "{{ librenms_devices.json.devices | map(attribute='hostname') | list }}"
+  tags: always
+
+- name: register librenms devices
+  when: librenms_client_state != 'absent'
+  block:
+
+    - name: create librenms devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices"
+        method: POST
+        body_format: json
+        body:
+          hostname: "{{ librenms_client_hostname }}"
+          display: "{{ librenms_client_display }}"
+          port: "{{ librenms_client_snmp_port }}"
+          version: "{{ librenms_client_snmp_version }}"
+          community: "{{ librenms_client_snmp_community if librenms_client_snmp_version != 'v3' else omit }}"
+          authlevel: "{{ librenms_client_snmp_authlevel if librenms_client_snmp_version == 'v3' else omit }}"
+          authname: "{{ librenms_client_snmp_name if librenms_client_snmp_version == 'v3' else omit }}"
+          authpass: "{{ librenms_client_snmp_authpass if librenms_client_snmp_version == 'v3' else omit }}"
+          authalgo: "{{ librenms_client_snmp_authalgo if librenms_client_snmp_version == 'v3' else omit }}"
+          cryptopass: "{{ librenms_client_snmp_cryptopass if librenms_client_snmp_version == 'v3' else omit }}"
+          cryptoalgo: "{{ librenms_client_snmp_cryptoalgo if librenms_client_snmp_version == 'v3' else omit }}"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        return_content: yes
+        validate_certs: no
+        status_code:
+          - 200
+          - 201
+      register: librenms_create_device
+      retries: 3
+      delay: 60
+      until: librenms_create_device is success
+      when: not librenms_client_hostname in librenms_hostnames
+      no_log: "{{ librenms_nolog | default(true) }}"
+
+    - name: enable librenms devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}"
+        method: PATCH
+        body_format: json
+        body:
+          field:
+            - disabled
+            - ignore
+          data:
+            - 0
+            - 0
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        return_content: yes
+        validate_certs: no
+      no_log: "{{ librenms_nolog | default(true) }}"
+
+    - name: update snmp v2c devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}"
+        method: PATCH
+        body_format: json
+        body:
+          field:
+            - display
+            - port
+            - version
+            - community
+          data:
+            - "{{ librenms_client_display }}"
+            - "{{ librenms_client_snmp_port }}"
+            - "{{ librenms_client_snmp_version }}"
+            - "{{ librenms_client_snmp_community }}"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        return_content: yes
+        validate_certs: no
+      no_log: "{{ librenms_nolog | default(true) }}"
+      when: librenms_client_snmp_version != 'v3'
+
+    - name: rediscover snmp devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}/discover"
+        body_format: json
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+      no_log: "{{ librenms_nolog | default(true) }}"
+
+- name: unregister librenms devices
+  ansible.builtin.uri:
+    url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}"
+    method: DELETE
+    headers:
+      X-Auth-Token: "{{ librenms_api_token }}"
+    return_content: yes
+    validate_certs: no
+    status_code:
+      - 200
+      - 404
+  when: librenms_client_state == 'absent'

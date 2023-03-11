@@ -1,14 +1,87 @@
 ---
-- name: Verify
+- name: Verify client deployment
 
   hosts: all
 
-  become: true
+  tasks:
+
+    - name: set general facts
+      block:
+
+        - name: gather localhost facts
+          ansible.builtin.setup:
+          delegate_to: localhost
+          delegate_facts: true
+
+        - name: record localhost facts
+          ansible.builtin.set_fact:
+            librenms_server_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
+            librenms_client_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
+
+    - name: create librenms api token
+      when: inventory_hostname in groups[server_group]
+      block:
+
+        - name: create api token
+          ansible.builtin.command: "php {{ librenms_root }}/addtoken.php {{ librenms_admin_user }}"
+          register: api_cmd
+
+        - name: register server token hash
+          ansible.builtin.set_fact:
+            librenms_api_token: "{{ api_out.token_hash }}"
+          vars:
+            api_out: "{{ api_cmd.stdout }}"
+
+        - name: end play for server vm
+          ansible.builtin.meta: end_host
+
+    - name: register client token hash
+      ansible.builtin.set_fact:
+        librenms_api_token: "{{ librenms_api_tokens | select('!=', '') | first }}"
+        librenms_url: "http://{{ librenms_server_hostname }}:8080"
+      vars:
+        librenms_api_tokens: "{{ groups[server_group] | map('extract', hostvars, 'librenms_api_token') }}"
+
+    - name: check librenms registration
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices?type=all"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        return_content: yes
+        validate_certs: no
+      register: librenms_devices
+      until: librenms_devices.json.devices | selectattr('display', 'equalto', inventory_hostname) | length > 0
+      retries: 10
+      delay: 60
+
+    - name: unregister librenms device
+      ansible.builtin.include_role:
+        name: wpnops.librenms
+      vars:
+        librenms_client_install: false
+        librenms_client_state: absent
+
+    - name: check librenms unregistration
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices?type=all"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        return_content: yes
+        validate_certs: no
+      register: librenms_devices
+      until: inventory_hostname not in (librenms_devices.json.devices | map(attribute='display'))
+      retries: 3
+      delay: 60
+
+
+- name: Verify server deployment
+
+  hosts: server
 
   tasks:
 
     - name: verify frontpage content
-      uri:
+      ansible.builtin.uri:
         url: http://localhost/
         status_code: 200
       register: _frontpage_content
@@ -17,10 +90,11 @@
       delay: 15
 
     - name: run librenms validate
-      command: "{{ librenms_root }}/validate.php"
+      ansible.builtin.command: "{{ librenms_root }}/validate.php"
       register: _librenms_validate_output
       become_user: "{{ librenms_user }}"
+      become: true
 
     - name: debug librenms healthcheck result
-      debug:
+      ansible.builtin.debug:
         var: _librenms_validate_output.stdout_lines

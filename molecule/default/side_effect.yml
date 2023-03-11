@@ -1,52 +1,120 @@
 ---
-- name: side effect
+- name: server side effect
 
-  hosts: all
+  hosts: server
 
   become: true
 
   tasks:
 
     - name: take librenms backup
-      command: /usr/local/bin/librenms-backup
+      ansible.builtin.command: /usr/local/bin/librenms-backup
       register: _backup_script
       until: _backup_script is not failed
       retries: 5
       delay: 5
 
     - name: kill mysql connections
-      command: |
+      ansible.builtin.command: |
         mysql -u {{ librenms_db_user }} -D {{ librenms_db_name }} -p{{ librenms_db_pass }}
         -e "select concat('KILL ',id,';') from information_schema.processlist"
 
     - name: drop librenms database
-      command: |
+      ansible.builtin.command: |
         mysql -u {{ librenms_db_user }} -p{{ librenms_db_pass }}
         -e "drop database {{ librenms_db_name }};"
 
     - name: confirm database does not exist
-      command: |
+      ansible.builtin.command: |
         mysql -u {{ librenms_db_user }} -p{{ librenms_db_pass }} \
         -e "show databases;"
       register: _database_output
 
     - name: debug librenms database output
-      debug:
+      ansible.builtin.debug:
         var: _database_output.stdout_lines
 
     - name: verify librenms status after dropping database
-      command: "{{ librenms_root }}/validate.php"
+      ansible.builtin.command: "{{ librenms_root }}/validate.php"
       become_user: "{{ librenms_user }}"
       failed_when: false
       register: _librenms_healthcheck_result
 
     - name: debug librenms healthcheck result
-      debug:
+      ansible.builtin.debug:
         var: _librenms_healthcheck_result.stderr_lines
 
     - name: perform librenms restore
-      command: /usr/local/bin/librenms-restore
-      register: _restore_script
-      until: _restore_script is not failed
-      retries: 5
-      delay: 5
+      ansible.builtin.command: /usr/local/bin/librenms-restore
+
+
+- name: client side effect
+
+  hosts: all
+
+  become: true
+
+  vars:
+
+    side_effect_version: v2c
+    side_effect_community: verify
+
+  tasks:
+
+    - name: set general facts
+      block:
+
+        - name: gather localhost facts
+          ansible.builtin.setup:
+          delegate_to: localhost
+          delegate_facts: true
+
+        - name: record localhost facts
+          ansible.builtin.set_fact:
+            librenms_server_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
+            librenms_client_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
+
+    - name: create librenms api token
+      tags: client
+      when: inventory_hostname in groups[server_group]
+      block:
+
+        - name: create api token
+          ansible.builtin.command: "php {{ librenms_root }}/addtoken.php {{ librenms_admin_user }}"
+          register: api_cmd
+
+        - name: register server token hash
+          ansible.builtin.set_fact:
+            librenms_api_token: "{{ api_out.token_hash }}"
+          vars:
+            api_out: "{{ api_cmd.stdout }}"
+
+        - name: end play for server vm
+          ansible.builtin.meta: end_host
+
+    - name: register client token hash
+      ansible.builtin.set_fact:
+        librenms_api_token: "{{ librenms_api_tokens | select('!=', '') | first }}"
+        librenms_url: "http://{{ librenms_server_hostname }}:8080"
+      vars:
+        librenms_api_tokens: "{{ groups[server_group] | map('extract', hostvars, 'librenms_api_token') }}"
+
+    - name: reconfigure client with custom v2 community
+      ansible.builtin.include_role:
+        name: wpnops.librenms
+      vars:
+        librenms_client_snmp_version: "{{ side_effect_version }}"
+        librenms_client_snmp_community: "{{ side_effect_community }}"
+
+    - meta: flush_handlers
+
+  post_tasks:
+
+    - name: verify local snmp daemon
+      ansible.builtin.command: "snmpget -v {{ _version }} -c {{ _community  }} localhost .1.3.6.1.2.1.1"
+      vars:
+        _version: "{{ side_effect_version | regex_replace('^v', '') }}"
+        _community: "{{ side_effect_community }}"
+      when:
+        - inventory_hostname not in groups[server_group]
+        - _version != '3'

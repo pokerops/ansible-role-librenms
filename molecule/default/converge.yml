@@ -8,20 +8,141 @@
   pre_tasks:
 
     - name: update apt cache.
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
+      tags: server
       when: (ansible_os_family | lower) == 'debian'
       failed_when: false
       ignore_errors: true
       changed_when: false
 
-    - name: remove dockerenv
-      file:
-        path: /.dockerenv
-        state: absent
+    - name: set general facts
+      tags: always
+      block:
 
-  roles:
+        - name: gather localhost facts
+          ansible.builtin.setup:
+          delegate_to: localhost
+          delegate_facts: true
 
-    - name: wpnops.librenms
+        - name: record localhost facts
+          ansible.builtin.set_fact:
+            librenms_server_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
+            librenms_client_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
+
+  tasks:
+
+    - name: deploy librenms server
+      tags: server
+      when: inventory_hostname in groups[server_group]
+      block:
+
+        - name: install librenms server components
+          ansible.builtin.include_role:
+            name: wpnops.librenms
+            apply:
+              tags: server
+
+        - name: create token bootstrap script
+          ansible.builtin.copy:
+            dest: "{{ librenms_root }}/addtoken.php"
+            mode: 0755
+            owner: "{{ librenms_user }}"
+            group: "{{ librenms_group }}"
+            content: |
+              #!/usr/bin/env php
+              <?php
+
+              /*
+              * LibreNMS
+              *
+              *   This file is part of LibreNMS.
+              *
+              * @package    LibreNMS
+              * @subpackage cli
+              * @copyright  (C) 2006 - 2012 Adam Armstrong
+              *
+              */
+
+              use App\Models\ApiToken;
+              use App\Models\User;
+              use LibreNMS\Authentication\LegacyAuth;
+
+              $init_modules = [];
+              if (php_sapi_name() != 'cli') {
+                  $init_modules[] = 'auth';
+              }
+              require __DIR__ . '/includes/init.php';
+
+              if (LegacyAuth::get()->canManageUsers()) {
+                  if (isset($argv[1])) {
+                      if (! LegacyAuth::get()->userExists($argv[1])) {
+                          echo 'User ' . $argv[1] . " does not exist!\n";
+                      } else {
+                          $username = $argv[1];
+                          $userid = LegacyAuth::get()->getUserid($username);
+                          $user = User::find($userid);
+                          $token = ApiToken::generateToken($user);
+                          echo $token;
+                      }
+                  } else {
+                      echo "Add Token Tool\nUsage: ./addtoken.php <username>\n";
+                  }
+              } else {
+                  echo "Auth module does not allow adding tokens!\n";
+              }//end if
+
+        - name: install jq
+          ansible.builtin.package:
+            name: jq
+
+    - name: create librenms api token
+      tags: client
+      when: inventory_hostname in groups[server_group]
+      block:
+
+        - name: create api token
+          ansible.builtin.command: "php {{ librenms_root }}/addtoken.php {{ librenms_admin_user }}"
+          register: api_cmd
+          changed_when: false
+
+        - name: register server token hash
+          ansible.builtin.set_fact:
+            librenms_api_token: "{{ api_out.token_hash }}"
+          vars:
+            api_out: "{{ api_cmd.stdout }}"
+
+        - name: disable icmp checks
+          ansible.builtin.command: "{{ librenms_root }}/lnms config:set icmp_check false"
+          become_user: "{{ librenms_user }}"
+          become: true
+          changed_when: false
+
+    - name: deploy librenms clients
+      tags: client
+      when: inventory_hostname not in groups[server_group]
+      block:
+
+        - name: register client token hash
+          set_fact:
+            librenms_api_token: "{{ librenms_api_tokens | select('!=', '') | first }}"
+            librenms_url: "http://{{ librenms_server_hostname }}:8080"
+          vars:
+            librenms_api_tokens: "{{ groups[server_group] | map('extract', hostvars, 'librenms_api_token') }}"
+
+        - name: install librenms client components
+          ansible.builtin.include_role:
+            name: wpnops.librenms
+            apply:
+              tags: client
+
+  post_tasks:
+
+    - name: verify local snmp daemon
+      ansible.builtin.command: "snmpget -v {{ _version }} -c {{ _community  }} localhost .1.3.6.1.2.1.1"
       vars:
-        configure: true
+        _community: "{{ librenms_client_snmp_community }}"
+        _version: "{{ librenms_client_snmp_version | regex_replace('^v', '') }}"
+      when:
+        - inventory_hostname not in groups[server_group]
+        - _version != '3'

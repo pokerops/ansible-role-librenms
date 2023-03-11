@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+
+rocommunity {{ librenms_client_snmp_community }}
+
+{% if librenms_client_snmp_location != '' -%}
+  sysLocation {{ librenms_client_snmp_location }}
+{% endif %}
+{% if librenms_client_snmp_contact != '' -%}
+  sysContact {{ librenms_client_snmp_contact }}
+{% endif %}
+
+{{ librenms_client_snmp_conf_include }}

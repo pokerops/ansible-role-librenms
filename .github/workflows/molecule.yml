@@ -13,6 +13,7 @@ defaults:
 jobs:
 
   lint:
+
     name: lint
     runs-on: ubuntu-latest
     steps:
@@ -36,16 +37,20 @@ jobs:
         run: |
           poetry run yamllint .
           poetry run ansible-lint . -c .ansible-lint.yml
+
   molecule:
+
     name: molecule tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        scenario:
-          - default
-        distro:
+        server:
           - ubuntu2004
           - ubuntu2204
+        client:
+          - ubuntu2004
+          - ubuntu2204
+          - rockylinux8
 
     steps:
 
@@ -79,9 +84,10 @@ jobs:
             sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
 
       - name: run molecule tests
-        run: poetry run molecule test -s ${{ matrix.scenario }}
+        run: poetry run molecule test
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
-          MOLECULE_DISTRO: ${{ matrix.distro }}
+          MOLECULE_SERVER_DISTRO: ${{ matrix.server }}
+          MOLECULE_CLIENT_DISTRO: ${{ matrix.server }}
           MOLECULE_IMAGE_COMMAND: /lib/systemd/systemd
