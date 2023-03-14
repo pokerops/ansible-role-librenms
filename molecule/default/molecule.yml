@@ -65,9 +65,11 @@ provisioner:
       all:
         server_group: servers
         librenms_nolog: false
+        librenms_client_snmp_version: v2c
+        librenms_client_snmp_community: public
       servers:
         librenms_server_install: true
-        librenms_client_install: false
+        librenms_client_register: false
         librenms_root: /opt/librenms
         librenms_user: librenms
         librenms_group: librenms
@@ -77,10 +79,7 @@ provisioner:
         librenms_db_pass: database
         librenms_db_name: librenms
       clients:
-        librenms_client_hostname: localhost
         librenms_client_snmp_port: 8016
-        librenms_client_snmp_version: v2c
-        librenms_client_snmp_community: public
         librenms_client_register: true
 
 verifier:

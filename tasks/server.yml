@@ -12,8 +12,6 @@
       - "{{ ansible_distribution | lower }}"
       - "{{ ansible_os_family | lower }}"
       - "default"
-  tags:
-    - always
 
 - name: php version validation
   ansible.builtin.fail:
@@ -31,8 +29,6 @@
       - "{{ ansible_distribution | lower }}"
       - "{{ ansible_os_family | lower }}"
       - "default"
-  tags:
-    - always
 
 - name: inspect packages
   ansible.builtin.package_facts:
@@ -231,8 +227,7 @@
 
 - name: set librenms folder write permissions
   ansible.builtin.command: "chown -R {{ librenms_user }}:{{ librenms_group }} {{ librenms_root }}"
-  tags:
-    - skip_ansible_lint
+  tags: skip_ansible_lint
   changed_when: false
 
 - name: install librenms dependencies
@@ -241,8 +236,7 @@
   args:
     creates: "{{ librenms_root }}/composer.phar"
   become_user: "{{ librenms_user }}"
-  notify:
-    - restart fpm
+  notify: restart fpm
 
 - name: run librenms daily
   ansible.builtin.command: "{{ librenms_root }}/daily.sh"
@@ -250,16 +244,25 @@
   changed_when: false
 
 - name: get list of current librenms users
-  ansible.builtin.command: "mysql -u{{ librenms_db_user }} -p{{ librenms_db_pass }} {{ librenms_db_name }} -e 'SELECT username FROM users'"
-  register: librenms_user_list
+  ansible.builtin.command: "mysql -u{{ _user }} -p{{ _pass }} {{ _db }} -e 'SELECT username FROM users'"
+  vars:
+    _user: "{{ librenms_db_user }}"
+    _pass: "{{ librenms_db_pass }}"
+    _db: "{{ librenms_db_name }}"
+  register: _librenms_user_list
   changed_when: false
 
 - name: create librenms admin user
-  ansible.builtin.command: "php {{ librenms_root }}/adduser.php {{ librenms_admin_user }} {{ librenms_admin_pass }} 10 {{ librenms_admin_email }}"
+  ansible.builtin.command: "php {{ _root }}/adduser.php {{ _user }} {{ _pass }} 10 {{ _email }}"
+  vars:
+    _root: "{{ librenms_root }}"
+    _user: "{{ librenms_admin_user }}"
+    _pass: "{{ librenms_admin_pass }}"
+    _email: "{{ librenms_admin_email }}"
   become_user: "{{ librenms_user }}"
-  when: "librenms_admin_user not in librenms_user_list.stdout_lines"
-  register: librenms_add_admin_user_result
-  changed_when: "'already exists' not in librenms_add_admin_user_result.stdout"
+  when: "librenms_admin_user not in _librenms_user_list.stdout_lines"
+  register: _librenms_add_admin_user_result
+  changed_when: "'already exists' not in _librenms_add_admin_user_result.stdout"
 
 - name: cron job for cleaup database daily
   ansible.builtin.cron:

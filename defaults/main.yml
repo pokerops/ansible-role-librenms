@@ -29,6 +29,9 @@ librenms_packages_default:
     - cron
   default: []
 
+librenms_install_retry_attempts: 4
+librenms_install_retry_delay: 15
+
 librenms_url: "http://localhost"
 librenms_nolog: true
 
@@ -197,3 +200,5 @@ librenms_client_snmp_authalgo: "SHA"
 librenms_client_snmp_authpass: "password"
 librenms_client_snmp_cryptoalgo: "SHA"
 librenms_client_snmp_cryptopass: "password"
+
+librenms_devices: []

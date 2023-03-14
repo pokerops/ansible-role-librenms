@@ -1,7 +1,7 @@
 ---
 - name: verify client version
   ansible.builtin.fail:
-    msg: "librenms_client_snmp_version must be one of {{ librenms_snmp_client_snmp_version_valid }}"
+    msg: "librenms_client_snmp_version must be one of {{ librenms_client_snmp_version_valid }}"
   vars:
     librenms_client_snmp_version_valid: ['v2c', 'v3']
   when: librenms_client_snmp_version not in librenms_client_snmp_version_valid
@@ -12,10 +12,10 @@
       - snmpd
       - snmp
   when: ansible_os_family == "Debian"
-  register: package_install
-  retries: 5
-  delay: 5
-  until: package_install is success
+  register: _package_install
+  retries: "{{ librenms_install_retry_attempts }}"
+  delay: "{{ librenms_install_retry_delay }}"
+  until: _package_install is success
 
 - name: install snmpd rpm package
   ansible.builtin.package:
@@ -23,10 +23,10 @@
       - net-snmp
       - net-snmp-utils
   when: ansible_os_family == "RedHat"
-  register: package_install
-  retries: 5
-  delay: 5
-  until: package_install is success
+  register: _package_install
+  retries: "{{ librenms_install_retry_attempts }}"
+  delay: "{{ librenms_install_retry_delay }}"
+  until: _package_install is success
 
 - name: configure snmpd
   ansible.builtin.template:

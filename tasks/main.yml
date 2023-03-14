@@ -1,12 +1,16 @@
 ---
+- name: Deploy server components
+  include_tasks: server.yml
+  when: librenms_server_install | bool
+
 - name: Deploy client components
   include_tasks: client.yml
   when: librenms_client_install | bool
 
-- name: Register librenms tasks
+- name: Register librenms clients
   include_tasks: register.yml
   when: librenms_client_register | bool
 
-- name: Deploy server components
-  include_tasks: server.yml
-  when: librenms_server_install | bool
+- name: Register extra librenms devices
+  include_tasks: devices.yml
+  when: librenms_devices | length > 0

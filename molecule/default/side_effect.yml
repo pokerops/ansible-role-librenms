@@ -81,16 +81,13 @@
 
         - name: create api token
           ansible.builtin.command: "php {{ librenms_root }}/addtoken.php {{ librenms_admin_user }}"
-          register: api_cmd
+          register: _api_cmd
 
         - name: register server token hash
           ansible.builtin.set_fact:
             librenms_api_token: "{{ api_out.token_hash }}"
           vars:
-            api_out: "{{ api_cmd.stdout }}"
-
-        - name: end play for server vm
-          ansible.builtin.meta: end_host
+            api_out: "{{ _api_cmd.stdout }}"
 
     - name: register client token hash
       ansible.builtin.set_fact:
@@ -98,6 +95,16 @@
         librenms_url: "http://{{ librenms_server_hostname }}:8080"
       vars:
         librenms_api_tokens: "{{ groups[server_group] | map('extract', hostvars, 'librenms_api_token') }}"
+
+    - name: set librenms device facts
+      ansible.builtin.set_fact:
+        librenms_devices:
+          - hostname: localhost
+            display: server
+            version: "{{ librenms_client_snmp_version }}"
+            community: "{{ side_effect_community }}"
+      when: inventory_hostname in groups[server_group]
+      tags: always
 
     - name: reconfigure client with custom v2 community
       ansible.builtin.include_role:
@@ -110,11 +117,68 @@
 
   post_tasks:
 
-    - name: verify local snmp daemon
-      ansible.builtin.command: "snmpget -v {{ _version }} -c {{ _community  }} localhost .1.3.6.1.2.1.1"
-      vars:
-        _version: "{{ side_effect_version | regex_replace('^v', '') }}"
-        _community: "{{ side_effect_community }}"
-      when:
-        - inventory_hostname not in groups[server_group]
-        - _version != '3'
+    - name: post converge verification tasks
+      tags: verify
+      block:
+
+        - name: verify local snmp daemon
+          ansible.builtin.command: "snmpget -v {{ _version }} -c {{ _community  }} localhost .1.3.6.1.2.1.1"
+          vars:
+            _version: "{{ side_effect_version | regex_replace('^v', '') }}"
+            _community: "{{ side_effect_community }}"
+          when:
+            - inventory_hostname not in groups[server_group]
+            - _version != '3'
+
+        - name: check librenms registration
+          ansible.builtin.uri:
+            url: "{{ librenms_url }}/api/v0/devices?type=all"
+            headers:
+              X-Auth-Token: "{{ librenms_api_token }}"
+            return_content: yes
+            validate_certs: no
+          register: _librenms_devices
+
+        - name: check librenms registration
+          ansible.builtin.uri:
+            url: "{{ librenms_url }}/api/v0/devices?type=all"
+            headers:
+              X-Auth-Token: "{{ librenms_api_token }}"
+            return_content: yes
+            validate_certs: no
+          vars:
+            attr_json: json
+            attr_devices: devices
+          register: _librenms_devices
+          until:
+            - attr_json in _librenms_devices
+            - attr_devices in _librenms_devices[attr_json]
+            - _librenms_devices[attr_json][attr_devices] | selectattr('display', 'equalto', inventory_hostname) | length > 0
+          when: librenms_client_register | bool
+          retries: 10
+          delay: 60
+
+        - name: verify device registrations
+          when: inventory_hostname in groups[server_group]
+          block:
+
+            - name: query librenms registrations
+              ansible.builtin.uri:
+                url: "{{ librenms_url }}/api/v0/devices?type=all"
+                headers:
+                  X-Auth-Token: "{{ librenms_api_token }}"
+                return_content: yes
+                validate_certs: no
+              register: _librenms_devices
+
+            - debug:
+                var: _librenms_devices
+
+            - name: verify librenms device registration
+              ansible.builtin.fail:
+                msg: "devices [{{ ', '.join(_unregistered) }}] have not been registered to librenms"
+              vars:
+                _registrations: "{{ librenms_devices | map(attribute='display') | list }}"
+                _registered: "{{ _librenms_devices.json.devices | map(attribute='display') | list }}"
+                _unregistered: "{{ _registrations | difference(_registered) | list }}"
+              when: _unregistered | length > 0
