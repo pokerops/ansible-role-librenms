@@ -183,6 +183,7 @@ librenms_update_channel: "release"
 librenms_oxidized_backend_proto: "http"
 librenms_oxidized_backend_port: "8888"
 
+librenms_client_delegate: "{{ inventory_hostname }}"
 librenms_client_hostname: "{{ ansible_default_ipv4.address }}"
 librenms_client_display: "{{ inventory_hostname }}"
 librenms_client_state: 'present'
@@ -201,4 +202,5 @@ librenms_client_snmp_authpass: "password"
 librenms_client_snmp_cryptoalgo: "SHA"
 librenms_client_snmp_cryptopass: "password"
 
-librenms_devices: []
+librenms_device_delegate: "{{ inventory_hostname }}"
+librenms_device_list: []

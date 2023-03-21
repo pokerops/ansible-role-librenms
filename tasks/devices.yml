@@ -1,163 +1,167 @@
 ---
-- name: query librenms devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices?type=all"
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-    return_content: yes
-  register: _librenms_devices
-  no_log: "{{ librenms_nolog }}"
+- name: manage client device registrations
+  delegate_to: "{{ librenms_device_delegate }}"
+  block:
 
-- name: map librenms registrations
-  ansible.builtin.set_fact:
-    librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
-  no_log: "{{ librenms_nolog }}"
+    - name: query librenms devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices?type=all"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        return_content: yes
+      register: _librenms_devices
+      no_log: "{{ librenms_nolog }}"
 
-- name: disable librenms devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
-    method: PATCH
-    body_format: json
-    body:
-      fields:
-        - disabled
-      data:
-        - 1
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-  loop: "{{ librenms_devices }}"
-  when: item.state | default('present') == 'disabled'
-  no_log: "{{ librenms_nolog }}"
+    - name: map librenms registrations
+      ansible.builtin.set_fact:
+        librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
+      no_log: "{{ librenms_nolog }}"
 
-- name: remove absent librenms devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
-    method: DELETE
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-  when:
-    - item.hostname in librenms_hostnames
-    - item.state | default('present') == 'absent'
-  loop: "{{ librenms_devices }}"
-  no_log: "{{ librenms_nolog }}"
+    - name: disable librenms devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
+        method: PATCH
+        body_format: json
+        body:
+          fields:
+            - disabled
+          data:
+            - 1
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+      loop: "{{ librenms_device_list }}"
+      when: item.state | default('present') == 'disabled'
+      no_log: "{{ librenms_nolog }}"
 
-- name: create librenms v2c devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices"
-    method: POST
-    body_format: json
-    body:
-      hostname: "{{ item.hostname }}"
-      display: "{{ item.display | default(item.hostname) }}"
-      version: "{{ item.version | default(librenms_client_snmp_version) }}"
-      community: "{{ item.community | default(librenms_client_snmp_community) }}"
-      port: "{{ item.port| default(librenms_client_snmp_port) }}"
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-    validate_certs: no
-    status_code:
-      - 200
-      - 201
-  when:
-    - not item.hostname in librenms_hostnames
-    - item.state | default('present') != 'absent'
-    - item.version | default(librenms_client_snmp_version) != "v3"
-  loop: "{{ librenms_devices }}"
-  no_log: "{{ librenms_nolog }}"
+    - name: remove absent librenms devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
+        method: DELETE
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+      when:
+        - item.hostname in librenms_hostnames
+        - item.state | default('present') == 'absent'
+      loop: "{{ librenms_device_list }}"
+      no_log: "{{ librenms_nolog }}"
 
-- name: update librenms v2c devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
-    method: PATCH
-    body_format: json
-    body:
-      field:
-        - display
-        - port
-        - version
-        - community
-      data:
-        - "{{ item.display | default(item.hostname) }}"
-        - "{{ item.port| default(librenms_client_snmp_port) }}"
-        - "{{ item.version | default(librenms_client_snmp_version) }}"
-        - "{{ item.community | default(librenms_client_snmp_community) }}"
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-    validate_certs: no
-    status_code:
-      - 200
-      - 201
-  when:
-    - item.state | default('present') != 'absent'
-    - item.version | default(librenms_client_snmp_version) != "v3"
-  loop: "{{ librenms_devices }}"
-  no_log: "{{ librenms_nolog }}"
+    - name: create librenms v2c devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices"
+        method: POST
+        body_format: json
+        body:
+          hostname: "{{ item.hostname }}"
+          display: "{{ item.display | default(item.hostname) }}"
+          version: "{{ item.version | default(librenms_client_snmp_version) }}"
+          community: "{{ item.community | default(librenms_client_snmp_community) }}"
+          port: "{{ item.port| default(librenms_client_snmp_port) }}"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        status_code:
+          - 200
+          - 201
+      when:
+        - not item.hostname in librenms_hostnames
+        - item.state | default('present') != 'absent'
+        - item.version | default(librenms_client_snmp_version) != "v3"
+      loop: "{{ librenms_device_list }}"
+      no_log: "{{ librenms_nolog }}"
 
-- name: create librenms v3 devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices"
-    method: POST
-    body_format: json
-    body:
-      hostname: "{{ item.hostname }}"
-      display: "{{ item.display | default(item.hostname) }}"
-      version: "{{ item.version | default(librenms_client_snmp_version) }}"
-      port: "{{ item.port| default(librenms_client_snmp_port) }}"
-      authlevel: "{{ (item.authlevel | default(librenms_client_snmp_authlevel)) if librenms_client_snmp_version == 'v3' else omit }}"
-      authname: "{{ (item.authname | default(librenms_client_snmp_authname)) if librenms_client_snmp_version == 'v3' else omit }}"
-      authpass: "{{ (item.authpass | default(librenms_client_snmp_authpass)) if librenms_client_snmp_version == 'v3' else omit }}"
-      authalgo: "{{ (item.authalgo | default(librenms_client_snmp_authalgo)) if librenms_client_snmp_version == 'v3' else omit }}"
-      cryptopass: "{{ (item.cryptopass | default(librenms_client_snmp_cryptopass)) if librenms_client_snmp_version == 'v3' else omit }}"
-      cryptoalgo: "{{ (item.cryptoalgo | default(librenms_client_snmp_cryptoalgo)) if librenms_client_snmp_version == 'v3' else omit }}"
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-    validate_certs: no
-    status_code:
-      - 200
-      - 201
-  vars:
-    _version:
-  when:
-    - not item.hostname in librenms_hostnames
-    - item.state | default('present') != 'absent'
-    - item.version | default(librenms_client_snmp_version) == "v3"
-  loop: "{{ librenms_devices }}"
-  no_log: "{{ librenms_nolog }}"
+    - name: update librenms v2c devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
+        method: PATCH
+        body_format: json
+        body:
+          field:
+            - display
+            - port
+            - version
+            - community
+          data:
+            - "{{ item.display | default(item.hostname) }}"
+            - "{{ item.port| default(librenms_client_snmp_port) }}"
+            - "{{ item.version | default(librenms_client_snmp_version) }}"
+            - "{{ item.community | default(librenms_client_snmp_community) }}"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        status_code:
+          - 200
+          - 201
+      when:
+        - item.state | default('present') != 'absent'
+        - item.version | default(librenms_client_snmp_version) != "v3"
+      loop: "{{ librenms_device_list }}"
+      no_log: "{{ librenms_nolog }}"
 
-- name: update librenms v3 devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
-    method: PATCH
-    body_format: json
-    body:
-      field:
-        - display
-        - port
-        - version
-        - community
-      data:
-        - "{{ item.display | default(item.hostname) }}"
-        - "{{ item.port| default(librenms_client_snmp_port) }}"
-        - "{{ item.version | default(librenms_client_snmp_version) }}"
-        - "{{ item.community | default(librenms_client_snmp_community) }}"
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-    validate_certs: no
-    status_code:
-      - 200
-      - 201
-  when:
-    - item.state | default('present') != 'absent'
-    - item.version | default(librenms_client_snmp_version) != "v3"
-  loop: "{{ librenms_devices }}"
-  no_log: "{{ librenms_nolog }}"
+    - name: create librenms v3 devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices"
+        method: POST
+        body_format: json
+        body:
+          hostname: "{{ item.hostname }}"
+          display: "{{ item.display | default(item.hostname) }}"
+          version: "{{ item.version | default(librenms_client_snmp_version) }}"
+          port: "{{ item.port| default(librenms_client_snmp_port) }}"
+          authlevel: "{{ (item.authlevel | default(librenms_client_snmp_authlevel)) if librenms_client_snmp_version == 'v3' else omit }}"
+          authname: "{{ (item.authname | default(librenms_client_snmp_authname)) if librenms_client_snmp_version == 'v3' else omit }}"
+          authpass: "{{ (item.authpass | default(librenms_client_snmp_authpass)) if librenms_client_snmp_version == 'v3' else omit }}"
+          authalgo: "{{ (item.authalgo | default(librenms_client_snmp_authalgo)) if librenms_client_snmp_version == 'v3' else omit }}"
+          cryptopass: "{{ (item.cryptopass | default(librenms_client_snmp_cryptopass)) if librenms_client_snmp_version == 'v3' else omit }}"
+          cryptoalgo: "{{ (item.cryptoalgo | default(librenms_client_snmp_cryptoalgo)) if librenms_client_snmp_version == 'v3' else omit }}"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        status_code:
+          - 200
+          - 201
+      vars:
+        _version:
+      when:
+        - not item.hostname in librenms_hostnames
+        - item.state | default('present') != 'absent'
+        - item.version | default(librenms_client_snmp_version) == "v3"
+      loop: "{{ librenms_device_list }}"
+      no_log: "{{ librenms_nolog }}"
 
-- name: rediscover librenms devices
-  ansible.builtin.uri:
-    url: "{{ librenms_url }}/api/v0/devices/{{ item }}/discover"
-    body_format: json
-    headers:
-      X-Auth-Token: "{{ librenms_api_token }}"
-    validate_certs: no
-  loop: "{{ librenms_devices | map(attribute='hostname') }}"
-  no_log: "{{ librenms_nolog | default(true) }}"
+    - name: update librenms v3 devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
+        method: PATCH
+        body_format: json
+        body:
+          field:
+            - display
+            - port
+            - version
+            - community
+          data:
+            - "{{ item.display | default(item.hostname) }}"
+            - "{{ item.port| default(librenms_client_snmp_port) }}"
+            - "{{ item.version | default(librenms_client_snmp_version) }}"
+            - "{{ item.community | default(librenms_client_snmp_community) }}"
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+        status_code:
+          - 200
+          - 201
+      when:
+        - item.state | default('present') != 'absent'
+        - item.version | default(librenms_client_snmp_version) != "v3"
+      loop: "{{ librenms_device_list }}"
+      no_log: "{{ librenms_nolog }}"
+
+    - name: rediscover librenms devices
+      ansible.builtin.uri:
+        url: "{{ librenms_url }}/api/v0/devices/{{ item }}/discover"
+        body_format: json
+        headers:
+          X-Auth-Token: "{{ librenms_api_token }}"
+        validate_certs: no
+      loop: "{{ librenms_device_list | map(attribute='hostname') }}"
+      no_log: "{{ librenms_nolog | default(true) }}"

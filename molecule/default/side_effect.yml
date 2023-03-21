@@ -98,7 +98,7 @@
 
     - name: set librenms device facts
       ansible.builtin.set_fact:
-        librenms_devices:
+        librenms_device_list:
           - hostname: localhost
             display: server
             version: "{{ librenms_client_snmp_version }}"
@@ -178,7 +178,7 @@
               ansible.builtin.fail:
                 msg: "devices [{{ ', '.join(_unregistered) }}] have not been registered to librenms"
               vars:
-                _registrations: "{{ librenms_devices | map(attribute='display') | list }}"
+                _registrations: "{{ librenms_device_list | map(attribute='display') | list }}"
                 _registered: "{{ _librenms_devices.json.devices | map(attribute='display') | list }}"
                 _unregistered: "{{ _registrations | difference(_registered) | list }}"
               when: _unregistered | length > 0

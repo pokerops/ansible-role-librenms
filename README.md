@@ -11,7 +11,14 @@ Please refer to the [defaults file](/defaults/main.yml) for an up to date list o
 
 ## Dependencies
 
-By default this role does not depend on any external roles. If any such dependency is required please [add them](/meta/main.yml) according to [the documentation](http://docs.ansible.com/ansible/playbooks_roles.html#role-dependencies)
+The following roles must be accessible to the host executing this role
+
+* nephelaiio.plugins
+* nephelaiio.nfs
+* geerlingguy.nginx
+* geerlingguy.mysql
+* geerlingguy.php
+* geerlingguy.php-versions
 
 ## Operating modes and examples
 
@@ -40,7 +47,7 @@ Please make sure your environment has [podman](https://podman.io) installed in o
 Role is tested against the following distributions (docker images):
 
   * Ubuntu Focal
-  * Debian Buster
+ * Debian Buster
 
 You can test the role directly from sources using the following commands
 

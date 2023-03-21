@@ -56,7 +56,7 @@
 
     - name: set librenms device facts
       ansible.builtin.set_fact:
-        librenms_devices:
+        librenms_device_list:
           - hostname: localhost
             display: server
             state: absent
@@ -90,8 +90,8 @@
         return_content: yes
         validate_certs: no
       vars:
-        _registrations: "{{ librenms_devices | map(attribute='display') | list }}"
-        _unregistered: "{{ librenms_devices | map(attribute='display') | list }}"
+        _registrations: "{{ librenms_device_list | map(attribute='display') | list }}"
+        _unregistered: "{{ librenms_device_list | map(attribute='display') | list }}"
       register: _librenms_devices
       until: _registrations | intersect(_unregistered) | length == 0
       when: inventory_hostname in groups[server_group]

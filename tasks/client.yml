@@ -1,47 +1,51 @@
 ---
-- name: verify client version
-  ansible.builtin.fail:
-    msg: "librenms_client_snmp_version must be one of {{ librenms_client_snmp_version_valid }}"
-  vars:
-    librenms_client_snmp_version_valid: ['v2c', 'v3']
-  when: librenms_client_snmp_version not in librenms_client_snmp_version_valid
+- name: manage client configuration
+  when: librenms_client_state == 'present'
+  block:
 
-- name: install snmpd deb packages
-  ansible.builtin.package:
-    name:
-      - snmpd
-      - snmp
-  when: ansible_os_family == "Debian"
-  register: _package_install
-  retries: "{{ librenms_install_retry_attempts }}"
-  delay: "{{ librenms_install_retry_delay }}"
-  until: _package_install is success
+    - name: verify client version
+      ansible.builtin.fail:
+        msg: "librenms_client_snmp_version must be one of {{ librenms_client_snmp_version_valid }}"
+      vars:
+        librenms_client_snmp_version_valid: ['v2c', 'v3']
+      when: librenms_client_snmp_version not in librenms_client_snmp_version_valid
 
-- name: install snmpd rpm package
-  ansible.builtin.package:
-    name:
-      - net-snmp
-      - net-snmp-utils
-  when: ansible_os_family == "RedHat"
-  register: _package_install
-  retries: "{{ librenms_install_retry_attempts }}"
-  delay: "{{ librenms_install_retry_delay }}"
-  until: _package_install is success
+    - name: install snmpd deb packages
+      ansible.builtin.package:
+        name:
+          - snmpd
+          - snmp
+      when: ansible_os_family == "Debian"
+      register: _package_install
+      retries: "{{ librenms_install_retry_attempts }}"
+      delay: "{{ librenms_install_retry_delay }}"
+      until: _package_install is success
 
-- name: configure snmpd
-  ansible.builtin.template:
-    src: snmpd.conf.v2c.j2
-    dest: /etc/snmp/snmpd.conf
-    mode: 0600
-  vars:
-    snmpd_location: "{{ snmp_location }}"
-    snmpd_contact: "{{ snmp_contact | default('infra@imail.ag') }}"
-    snmpd_community: "{{ snmp_community | default('public') }}"
-  when: librenms_client_snmp_version != 'v3'
-  notify: restart snmpd
+    - name: install snmpd rpm package
+      ansible.builtin.package:
+        name:
+          - net-snmp
+          - net-snmp-utils
+      when: ansible_os_family == "RedHat"
+      register: _package_install
+      retries: "{{ librenms_install_retry_attempts }}"
+      delay: "{{ librenms_install_retry_delay }}"
+      until: _package_install is success
 
-- name: start snmpd
-  service:
-    name: snmpd
-    state: started
-    enabled: true
+    - name: configure snmpd
+      ansible.builtin.template:
+        src: snmpd.conf.v2c.j2
+        dest: /etc/snmp/snmpd.conf
+        mode: 0600
+      vars:
+        snmpd_location: "{{ snmp_location }}"
+        snmpd_contact: "{{ snmp_contact | default('infra@imail.ag') }}"
+        snmpd_community: "{{ snmp_community | default('public') }}"
+      when: librenms_client_snmp_version != 'v3'
+      notify: restart snmpd
+
+    - name: start snmpd
+      service:
+        name: snmpd
+        state: started
+        enabled: true

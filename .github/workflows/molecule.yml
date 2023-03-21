@@ -70,6 +70,9 @@ jobs:
       - name: install pips
         run: poetry install
 
+      - name: update apt cache
+        run: sudo apt-get update
+
       - name: install podman
         run: sudo apt-get install -y podman
 

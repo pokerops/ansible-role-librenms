@@ -13,4 +13,4 @@
 
 - name: Register extra librenms devices
   include_tasks: devices.yml
-  when: librenms_devices | length > 0
+  when: librenms_device_list | length > 0
