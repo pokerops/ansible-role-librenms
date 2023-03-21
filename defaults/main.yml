@@ -1,6 +1,5 @@
 ---
 librenms_server_install: false
-librenms_backup: "{{ librenms_server_install }}"
 librenms_client_install: true
 librenms_client_register: "{{ librenms_client_install }}"
 
@@ -38,11 +37,14 @@ librenms_nolog: true
 librenms_root: /opt/librenms
 librenms_hostname: "{{ librenms_url | urlsplit('hostname') }}"
 librenms_repo_url: https://github.com/librenms/librenms.git
+
+librenms_backup_enable: "{{ librenms_server_install }}"
 librenms_backup_target: "/backup"
 librenms_backup_identifier: "librenms"
 librenms_backup_bin: "/usr/local/bin/librenms-backup"
-librenms_restore_bin: "/usr/local/bin/librenms-restore"
 librenms_backup_retention_period: 3
+librenms_restore_bin: "/usr/local/bin/librenms-restore"
+
 librenms_mysql_packages_default:
   debian:
     - mariadb-client
@@ -67,7 +69,6 @@ librenms_php_packages_default:
     - "php{{ _librenms_php_version }}-ldap"
     - "php{{ _librenms_php_version }}-gmp"
     - "php{{ _librenms_php_version }}-apcu"
-
   default: []
 librenms_php_ini_timezone_default:
   debian:
@@ -77,6 +78,7 @@ librenms_php_ini_timezone_default:
 
 librenms_composer_path: /usr/local/bin/composer
 
+librenms_nginx_install: true
 librenms_nginx_user: www-data
 librenms_nginx_group: www-data
 librenms_nginx_conf_dir: /etc/nginx
@@ -99,7 +101,6 @@ librenms_nginx_vhost_extra: |
   location ~ /\.ht {
     deny all;
   }
-
 librenms_nginx_vhost_proto:
   http:
     - listen: "80"

@@ -39,7 +39,7 @@
     name: nephelaiio.nfs
   vars:
     nfs_server: false
-  when: librenms_backup | bool
+  when: librenms_backup_enable
 
 - name: install mysql
   ansible.builtin.include_role:
@@ -121,7 +121,7 @@
     nginx_certificate_hostname: "{{ librenms_nginx_certificate_hostname }}"
     nginx_certificate_chainfile: "{{ librenms_nginx_certificate_chainfile }}"
     nginx_certificate_keyfile: "{{ librenms_nginx_certificate_keyfile }}"
-  when: librenms_nginx_install | default(true)
+  when: librenms_nginx_install
 
 - name: create librenms group
   ansible.builtin.group:
@@ -297,7 +297,7 @@
     mode: 0755
 
 - name: manage librenms backups
-  when: librenms_backup
+  when: librenms_backup_enable
   block:
 
     - name: create librenms backup script
