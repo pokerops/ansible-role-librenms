@@ -3,6 +3,22 @@
   delegate_to: "{{ librenms_device_delegate }}"
   block:
 
+    - name: filter device definitions
+      ansible.builtin.set_fact:
+        librenms_devices_enabled: "{{ librenms_device_list | difference(_devices_absent) | difference(_devices_disabled) }}"
+        librenms_devices_absent: "{{ _devices_absent }}"
+        librenms_devices_disabled: "{{ _devices_disabled }}"
+        librenms_devices_v2: "{{ _devices_v2 | difference(_devices_absent) }}"
+        librenms_devices_v3: "{{ _devices_v3 | difference(_devices_absent) }}"
+      vars:
+        _devices_state: "{{ librenms_device_list | selectattr('state', 'defined') }}"
+        _devices_disabled: "{{ _devices_state | selectattr('state', 'equalto', 'disabled') }}"
+        _devices_absent: "{{ _devices_state | selectattr('state', 'equalto', 'absent') }}"
+        _devices_versioned: "{{ librenms_device_list | selectattr('version', 'defined') }}"
+        _devices_unversioned: "{{ librenms_device_list | rejectattr('version', 'defined') }}"
+        _devices_v3: "{{ _devices_versioned | selectattr('version', 'equalto', 'v3') }}"
+        _devices_v2: "{{ _devices_unversioned + (_devices_versioned | rejectattr('version', 'equalto', 'v3')) }}"
+
     - name: query librenms devices
       ansible.builtin.uri:
         url: "{{ librenms_url }}/api/v0/devices?type=all"
@@ -29,7 +45,7 @@
             - 1
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
-      loop: "{{ librenms_device_list }}"
+      loop: "{{ librenms_devices_disabled }}"
       when: item.state | default('present') == 'disabled'
       no_log: "{{ librenms_nolog }}"
 
@@ -42,7 +58,7 @@
       when:
         - item.hostname in librenms_hostnames
         - item.state | default('present') == 'absent'
-      loop: "{{ librenms_device_list }}"
+      loop: "{{ librenms_devices_absent }}"
       no_log: "{{ librenms_nolog }}"
 
     - name: create librenms v2c devices
@@ -62,11 +78,8 @@
         status_code:
           - 200
           - 201
-      when:
-        - not item.hostname in librenms_hostnames
-        - item.state | default('present') != 'absent'
-        - item.version | default(librenms_client_snmp_version) != "v3"
-      loop: "{{ librenms_device_list }}"
+      when: not item.hostname in librenms_hostnames
+      loop: "{{ librenms_devices_v2 }}"
       no_log: "{{ librenms_nolog }}"
 
     - name: update librenms v2c devices
@@ -91,10 +104,7 @@
         status_code:
           - 200
           - 201
-      when:
-        - item.state | default('present') != 'absent'
-        - item.version | default(librenms_client_snmp_version) != "v3"
-      loop: "{{ librenms_device_list }}"
+      loop: "{{ librenms_devices_v2 }}"
       no_log: "{{ librenms_nolog }}"
 
     - name: create librenms v3 devices
@@ -121,11 +131,8 @@
           - 201
       vars:
         _version:
-      when:
-        - not item.hostname in librenms_hostnames
-        - item.state | default('present') != 'absent'
-        - item.version | default(librenms_client_snmp_version) == "v3"
-      loop: "{{ librenms_device_list }}"
+      when: not item.hostname in librenms_hostnames
+      loop: "{{ librenms_devices_v3 }}"
       no_log: "{{ librenms_nolog }}"
 
     - name: update librenms v3 devices
@@ -150,10 +157,7 @@
         status_code:
           - 200
           - 201
-      when:
-        - item.state | default('present') != 'absent'
-        - item.version | default(librenms_client_snmp_version) != "v3"
-      loop: "{{ librenms_device_list }}"
+      loop: "{{ librenms_devices_v3 }}"
       no_log: "{{ librenms_nolog }}"
 
     - name: rediscover librenms devices
@@ -163,5 +167,5 @@
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
         validate_certs: no
-      loop: "{{ librenms_device_list | map(attribute='hostname') }}"
+      loop: "{{ librenms_devices_enabled | map(attribute='hostname') }}"
       no_log: "{{ librenms_nolog | default(true) }}"

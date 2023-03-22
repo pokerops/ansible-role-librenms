@@ -42,10 +42,9 @@
         snmpd_contact: "{{ snmp_contact | default('infra@imail.ag') }}"
         snmpd_community: "{{ snmp_community | default('public') }}"
       when: librenms_client_snmp_version != 'v3'
-      notify: restart snmpd
 
-    - name: start snmpd
+    - name: restart snmpd service
       service:
         name: snmpd
-        state: started
+        state: restarted
         enabled: true

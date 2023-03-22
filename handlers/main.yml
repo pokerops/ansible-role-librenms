@@ -19,8 +19,3 @@
   ansible.builtin.service:
     name: cron
     state: restarted
-
-- name: restart snmpd
-  service:
-    name: snmpd
-    state: restarted
