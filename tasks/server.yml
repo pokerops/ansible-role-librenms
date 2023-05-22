@@ -253,9 +253,8 @@
   changed_when: false
 
 - name: create librenms admin user
-  ansible.builtin.command: "php {{ _root }}/adduser.php {{ _user }} {{ _pass }} 10 {{ _email }}"
+  ansible.builtin.command: "{{ librenms_root }}/lnms user:add {{ _user }} -p {{ _pass }} -r admin -e {{ _email }}"
   vars:
-    _root: "{{ librenms_root }}"
     _user: "{{ librenms_admin_user }}"
     _pass: "{{ librenms_admin_pass }}"
     _email: "{{ librenms_admin_email }}"
@@ -273,7 +272,7 @@
 
 - name: manage cronjob config
   ansible.builtin.copy:
-    src: "{{ librenms_root }}/librenms.nonroot.cron"
+    src: "{{ librenms_root }}/dist/librenms.cron"
     dest: /etc/cron.d/librenms
     remote_src: true
     group: root
