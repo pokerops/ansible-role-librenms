@@ -108,7 +108,7 @@
 
     - name: reconfigure client with custom v2 community
       ansible.builtin.include_role:
-        name: wpnops.librenms
+        name: pokerops.librenms
       vars:
         librenms_client_snmp_version: "{{ side_effect_version }}"
         librenms_client_snmp_community: "{{ side_effect_community }}"

@@ -39,7 +39,7 @@
 
         - name: install librenms server components
           ansible.builtin.include_role:
-            name: wpnops.librenms
+            name: pokerops.librenms
 
         - name: create token bootstrap script
           ansible.builtin.copy:
@@ -137,7 +137,7 @@
 
     - name: install librenms client components
       ansible.builtin.include_role:
-        name: wpnops.librenms
+        name: pokerops.librenms
       tags: client
 
   post_tasks:

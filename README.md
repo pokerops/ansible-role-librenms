@@ -1,9 +1,9 @@
-# wpnops.librenms
+# pokerops.librenms
 
 [![Build Status](https://github.com/wpnops/ansible-role-librenms/workflows/molecule/badge.svg)](https://github.com/wpnops/ansible-role-librenms/actions)
-[![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-wpnops.librenms-blue.svg)](https://galaxy.ansible.com/wpninfra/librenms/)
+[![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-pokerops.librenms-blue.svg)](https://galaxy.ansible.com/wpninfra/librenms/)
 
-An [ansible role](https://galaxy.ansible.com/wpnops/librenms) to install and configure (LibreNMS)[https://www.librenms.org/]
+An [ansible role](https://galaxy.ansible.com/pokerops/librenms) to install and configure (LibreNMS)[https://www.librenms.org/]
 
 ## Role Variables
 
@@ -29,7 +29,7 @@ Role can configure a LibreNMS server or client based on the value of the followi
   vars:
     librenms_server_install: true
   roles:
-     - role: wpnops.librenms
+     - role: pokerops.librenms
 ```
 
 And for clients
@@ -37,7 +37,7 @@ And for clients
 ```
 - hosts: clients
   roles:
-     - role: wpnops.librenms
+     - role: pokerops.librenms
 ```
 
 ## Testing

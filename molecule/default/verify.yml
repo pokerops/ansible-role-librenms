@@ -65,7 +65,7 @@
 
     - name: unregister librenms devices
       ansible.builtin.include_role:
-        name: wpnops.librenms
+        name: pokerops.librenms
       vars:
         librenms_client_install: false
         librenms_client_state: absent
