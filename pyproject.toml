@@ -8,8 +8,8 @@ authors = ["pokerops"]
 python = "^3.10"
 
 [tool.poetry.group.dev.dependencies]
-ansible-lint = "~5"
 netaddr = "^0.8.0"
+ansible-lint = { version = "*", markers = "platform_system != 'Windows'" }
 molecule = {extras = ["molecule-podman", "podman"], version = "^4.0.3"}
 ansible = "^8.6.1"
 markupsafe = "^2.1.3"
