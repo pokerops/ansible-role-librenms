@@ -49,9 +49,6 @@ jobs:
       - name: Debug test environment
         run: make debug
 
-      - name: configure podman registry
-        run: poetry run ansible -b -m lineinfile localhost -a "path=/etc/containers/registries.conf line='unqualified-search-registries = [\"docker.io\"]'"
-
       - name: disable apparmor
         run: |
             set -x
@@ -64,6 +61,6 @@ jobs:
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
-          MOLECULE_DOCKER_IMAGE: ${{ matrix.image.name }}
-          MOLECULE_COMMAND: ${{ matrix.image.command }}
-          MOLECULE_SCENARIO: ${{ matrix.scenario.name }}
+          MOLECULE_SERVER_DISTRO: ${{ matrix.server }}
+          MOLECULE_CLIENT_DISTRO: ${{ matrix.client }}
+          MOLECULE_IMAGE_COMMAND: /lib/systemd/systemd
