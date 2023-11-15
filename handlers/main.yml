@@ -1,21 +1,21 @@
 ---
-- name: restart mysql
+- name: Restart mysql
   ansible.builtin.service:
     name: mysql
     state: restarted
     enabled: true
 
-- name: restart fpm
+- name: Restart fpm
   ansible.builtin.service:
     name: "php{{ _librenms_php_version }}-fpm"
     state: restarted
 
-- name: restart nginx
+- name: Restart nginx
   ansible.builtin.service:
     name: nginx
     state: restarted
 
-- name: restart cron
+- name: Restart cron
   ansible.builtin.service:
     name: cron
     state: restarted
