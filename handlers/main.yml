@@ -19,3 +19,9 @@
   ansible.builtin.service:
     name: cron
     state: restarted
+
+- name: Restart scheduler
+  ansible.builtin.service:
+    name: librenms-scheduler.timer
+    state: restarted
+    enabled: true

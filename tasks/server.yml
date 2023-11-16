@@ -82,7 +82,6 @@
   vars:
     php_enable_webserver: false
     php_use_managed_ini: "{{ librenms_php_use_managed_ini }}"
-    php_memory_limit: "{{ librenms_php_memory_limit }}"
     php_packages: "{{ _librenms_php_packages }}"
 
 - name: Set php timezone
@@ -197,7 +196,7 @@
   loop:
     - "{{ librenms_root }}/rrd"
     - "{{ librenms_root }}/logs"
-    - "{{ librenms_root }}/bootstrap/cache"
+    - "{{ librenms_root }}/bootstrap/cache/"
     - "{{ librenms_root }}/storage/"
   changed_when: false
 
@@ -207,9 +206,6 @@
     dest: "{{ librenms_root }}/config.php"
     mode: "0750"
   vars:
-    librenms_config_db_name: "{{ librenms_db_name }}"
-    librenms_config_db_user: "{{ librenms_db_user }}"
-    librenms_config_db_pass: "{{ librenms_db_pass }}"
     librenms_config_root: "{{ librenms_root }}"
     librenms_config_url: "{{ librenms_url }}"
     librenms_config_ldap_servers: "{{ librenms_ldap_servers }}"
@@ -238,6 +234,49 @@
   become_user: "{{ librenms_user }}"
   become: true
   notify: Restart fpm
+
+- name: Stat librenms env file
+  ansible.builtin.stat:
+    path: "{{ librenms_root }}/.env"
+  register: _librenms_env
+
+- name: Manage librenms env file
+  ansible.builtin.lineinfile:
+    path: "{{ librenms_root }}/.env"
+    regexp: '^#{{ item.key }}='
+    line: "{{ item.key }}={{ item.value }}"
+  when: _librenms_env.stat.exists
+  loop:
+    - key: "DB_HOST"
+      value: "{{ librenms_db_host }}"
+    - key: "DB_DATABASE"
+      value: "{{ librenms_db_name }}"
+    - key: "DB_USERNAME"
+      value: "{{ librenms_db_user }}"
+    - key: "DB_PASSWORD"
+      value: "{{ librenms_db_pass }}"
+  loop_control:
+    label: "{{ item.key | lower }}"
+  no_log: "{{ librenms_nolog }}"
+  notify:
+    - Restart fpm
+    - Restart nginx
+
+- name: Get list of current librenms tables
+  ansible.builtin.command: "mysql -u{{ _user }} -p{{ _pass }} {{ _db }} -e 'SHOW TABLES'"
+  vars:
+    _user: "{{ librenms_db_user }}"
+    _pass: "{{ librenms_db_pass }}"
+    _db: "{{ librenms_db_name }}"
+  register: _librenms_tables_list
+  changed_when: false
+
+- name: Create librenms database schema first run
+  ansible.builtin.command: "{{ librenms_root }}/lnms migrate --no-interaction --force --seed"
+  become_user: "{{ librenms_user }}"
+  become: true
+  when: _librenms_tables_list.stdout_lines | length == 0
+  changed_when: false
 
 - name: Run librenms daily
   ansible.builtin.command: "{{ librenms_root }}/daily.sh"
@@ -291,6 +330,19 @@
     group: root
     owner: root
     mode: "0644"
+
+- name: Manage scheduler config
+  ansible.builtin.copy:
+    src: "{{ librenms_root }}/dist/{{ item }}"
+    dest: /etc/systemd/system
+    remote_src: true
+    group: root
+    owner: root
+    mode: "0755"
+  loop:
+    - librenms-scheduler.service
+    - librenms-scheduler.timer
+  notify: Restart scheduler
 
 - name: Create librenm directories
   ansible.builtin.file:

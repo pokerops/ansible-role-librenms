@@ -116,7 +116,7 @@
         librenms_client_snmp_community: "{{ side_effect_community }}"
 
     - name: Flush handlers
-      ansible.builtin.meta: Flush_handlers
+      ansible.builtin.meta: flush_handlers
 
   post_tasks:
 

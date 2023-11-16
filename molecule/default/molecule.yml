@@ -81,6 +81,7 @@ provisioner:
         librenms_db_user: database
         librenms_db_pass: database
         librenms_db_name: librenms
+        librenms_db_host: localhost
       clients:
         librenms_client_snmp_port: 8016
         librenms_client_register: true
