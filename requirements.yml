@@ -1,10 +1,8 @@
 ---
 roles:
-  - nephelaiio.plugins
-  - nephelaiio.nfs
-  - geerlingguy.nginx
-  - geerlingguy.mysql
-  - geerlingguy.php
-  - geerlingguy.php-versions
-collections:
-  - containers.podman
+  - name: nephelaiio.plugins
+  - name: nephelaiio.nfs
+  - name: geerlingguy.nginx
+  - name: geerlingguy.mysql
+  - name: geerlingguy.php
+  - name: geerlingguy.php-versions

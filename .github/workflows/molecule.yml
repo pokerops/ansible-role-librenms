@@ -3,43 +3,17 @@ name: molecule
 
 on:
   pull_request:
+    branches:
+      - master
   schedule:
-    - cron: "0 5 * * 0"
+    - cron: "0 5 * * 5"
 
 defaults:
   run:
-    working-directory: 'wpnops.librenms'
+    working-directory: 'pokerops.librenms'
 
 jobs:
-
-  lint:
-
-    name: lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: check out the codebase
-        uses: actions/checkout@v2
-        with:
-          path: 'wpnops.librenms'
-
-      - name: set up python 3
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: install poetry
-        run: pip3 install poetry
-
-      - name: install test dependencies
-        run: poetry install
-
-      - name: lint code
-        run: |
-          poetry run yamllint .
-          poetry run ansible-lint . -c .ansible-lint.yml
-
   molecule:
-
     name: molecule tests
     runs-on: ubuntu-latest
     strategy:
@@ -51,46 +25,42 @@ jobs:
           - ubuntu2004
           - ubuntu2204
           - rockylinux8
-
     steps:
 
-      - name: check out the codebase
-        uses: actions/checkout@v2
+      - name: Check out the codebase
+        uses: actions/checkout@v4
         with:
-          path: 'wpnops.librenms'
+          path: 'pokerops.librenms'
 
-      - name: set up python 3
-        uses: actions/setup-python@v2
+      - name: Set up python 3
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: install poetry
-        run: pip3 install poetry
-
-      - name: install pips
-        run: poetry install
-
-      - name: update apt cache
+      - name: Update ubuntu repositories
         run: sudo apt-get update
 
-      - name: install podman
-        run: sudo apt-get install -y podman
+      - name: Install make
+        run: sudo apt-get install -y make
 
-      - name: configure podman registry
-        run: poetry run ansible -b -m lineinfile localhost -a "path=/etc/containers/registries.conf line='unqualified-search-registries = [\"docker.io\"]'"
+      - name: Install dependencies
+        run: make install
 
-      - name: disable apparmor
+      - name: Debug test environment
+        run: make debug
+
+      - name: Disable apparmor
         run: |
             set -x
             sudo apt-get install apparmor-profiles
             sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
             sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
 
-      - name: run molecule tests
-        run: poetry run molecule test
+      - name: Run molecule tests
+        run: make test
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_SERVER_DISTRO: ${{ matrix.server }}
-          MOLECULE_CLIENT_DISTRO: ${{ matrix.server }}
+          MOLECULE_CLIENT_DISTRO: ${{ matrix.client }}
           MOLECULE_IMAGE_COMMAND: /lib/systemd/systemd

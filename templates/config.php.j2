@@ -2,14 +2,6 @@
 
 ## Have a look in defaults.inc.php for examples of settings you can set here. DO NOT EDIT defaults.inc.php!
 
-### Database config
-$config['db_host'] = '{{ librenms_db_host }}';
-$config['db_port'] = '3306';
-$config['db_user'] = '{{ librenms_config_db_user }}';
-$config['db_pass'] = '{{ librenms_config_db_pass }}';
-$config['db_name'] = '{{ librenms_config_db_name }}';
-$config['db_socket'] = '';
-
 // This is the user LibreNMS will run as
 //Please ensure this user is created and has the correct permissions to your install
 $config['user'] = 'librenms';
@@ -44,8 +36,8 @@ $config['update_channel'] = '{{ librenms_config_update_channel }}';  # uncomment
 $config['show_services'] = 1;
 $config['nagios_plugins'] = "/usr/lib/nagios/plugins";
 
-## Active Directory authentication configuration
 {% if 'active_directory' == librenms_auth_mechanism %}
+## Active Directory authentication configuration
 $config['auth_ad_url'] = '{{ librenms_config_ldap_servers | map("map_format", "ldap://%s") | join(" ") }}';
 $config['auth_ad_domain'] = '{{ librenms_config_ldap_domain }}';
 $config['auth_ad_base_dn'] = '{{ librenms_config_ldap_domain | split_with(".") | map("map_format", "dc=%s") | join(",") }}';

@@ -1,16 +1,16 @@
 ---
-- name: manage client configuration
+- name: Manage client configuration
   when: librenms_client_state == 'present'
   block:
 
-    - name: verify client version
+    - name: Verify client version
       ansible.builtin.fail:
         msg: "librenms_client_snmp_version must be one of {{ librenms_client_snmp_version_valid }}"
       vars:
         librenms_client_snmp_version_valid: ['v2c', 'v3']
       when: librenms_client_snmp_version not in librenms_client_snmp_version_valid
 
-    - name: install snmpd deb packages
+    - name: Install snmpd deb packages
       ansible.builtin.package:
         name:
           - snmpd
@@ -21,7 +21,7 @@
       delay: "{{ librenms_install_retry_delay }}"
       until: _package_install is success
 
-    - name: install snmpd rpm package
+    - name: Install snmpd rpm package
       ansible.builtin.package:
         name:
           - net-snmp
@@ -32,19 +32,19 @@
       delay: "{{ librenms_install_retry_delay }}"
       until: _package_install is success
 
-    - name: configure snmpd
+    - name: Configure snmpd
       ansible.builtin.template:
         src: snmpd.conf.v2c.j2
         dest: /etc/snmp/snmpd.conf
-        mode: 0600
+        mode: "0600"
       vars:
         snmpd_location: "{{ snmp_location }}"
         snmpd_contact: "{{ snmp_contact | default('infra@imail.ag') }}"
         snmpd_community: "{{ snmp_community | default('public') }}"
       when: librenms_client_snmp_version != 'v3'
 
-    - name: restart snmpd service
-      service:
+    - name: Restart snmpd service
+      ansible.builtin.service:
         name: snmpd
         state: restarted
         enabled: true

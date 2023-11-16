@@ -1,50 +1,51 @@
 ---
 dependency:
   name: galaxy
-
+  options:
+    role-file: requirements.yml
+    requirements-file: requirements.yml
 driver:
-  name: podman
-
+  name: docker
 platforms:
-
   - name: server
     image: geerlingguy/docker-${MOLECULE_SERVER_DISTRO:-ubuntu2004}-ansible:latest
     tmpfs:
       - /run
       - /tmp
     volumes:
-      - "/sys/fs/cgroup:/sys/fs/cgroup:ro"
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
     capabilities:
       - SYS_ADMIN
       - NET_RAW
     command: ${MOLECULE_IMAGE_COMMAND:-"/lib/systemd/systemd"}
+    cgroupns_mode: host
+    privileged: true
     pre_build_image: true
     groups:
       - servers
     published_ports:
       - 8080:80/tcp
-
   - name: client
     image: geerlingguy/docker-${MOLECULE_CLIENT_DISTRO:-ubuntu2004}-ansible:latest
+    cgroupns_mode: host
     tmpfs:
       - /run
       - /tmp
     volumes:
-      - "/sys/fs/cgroup:/sys/fs/cgroup:ro"
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
     capabilities:
       - SYS_ADMIN
       - NET_RAW
     command: ${MOLECULE_IMAGE_COMMAND:-"/lib/systemd/systemd"}
+    privileged: true
     pre_build_image: true
     groups:
       - clients
     published_ports:
       - 8016:161/udp
-
 scenario:
   test_sequence:
     - dependency
-    - lint
     - cleanup
     - destroy
     - syntax
@@ -56,10 +57,12 @@ scenario:
     - verify
     - cleanup
     - destroy
-
 provisioner:
   name: ansible
   log: true
+  config_options:
+    defaults:
+      callbacks_enabled: ansible.posix.profile_tasks
   inventory:
     group_vars:
       all:
@@ -78,6 +81,7 @@ provisioner:
         librenms_db_user: database
         librenms_db_pass: database
         librenms_db_name: librenms
+        librenms_db_host: localhost
       clients:
         librenms_client_snmp_port: 8016
         librenms_client_register: true

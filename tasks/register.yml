@@ -1,28 +1,28 @@
 ---
-- name: manage client device registrations
+- name: Manage client device registrations
   delegate_to: "{{ librenms_client_delegate }}"
   block:
 
-    - name: query librenms devices
+    - name: Query librenms devices
       ansible.builtin.uri:
         url: "{{ librenms_url }}/api/v0/devices?type=all"
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
-        return_content: yes
-        validate_certs: no
+        return_content: true
+        validate_certs: false
       register: _librenms_devices
       tags: always
 
-    - name: map librenms registrations
+    - name: Map librenms registrations
       ansible.builtin.set_fact:
         librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
       tags: always
 
-    - name: register librenms devices
+    - name: Register librenms devices
       when: librenms_client_state != 'absent'
       block:
 
-        - name: create librenms devices
+        - name: Create librenms devices
           ansible.builtin.uri:
             url: "{{ librenms_url }}/api/v0/devices"
             method: POST
@@ -41,8 +41,8 @@
               cryptoalgo: "{{ librenms_client_snmp_cryptoalgo if librenms_client_snmp_version == 'v3' else omit }}"
             headers:
               X-Auth-Token: "{{ librenms_api_token }}"
-            return_content: yes
-            validate_certs: no
+            return_content: true
+            validate_certs: false
             status_code:
               - 200
               - 201
@@ -51,7 +51,7 @@
           when: not librenms_client_hostname in librenms_hostnames
           no_log: "{{ librenms_nolog | default(true) }}"
 
-        - name: disable librenms devices
+        - name: Disable librenms devices
           ansible.builtin.uri:
             url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}"
             method: PATCH
@@ -65,12 +65,12 @@
                 - 1
             headers:
               X-Auth-Token: "{{ librenms_api_token }}"
-            return_content: yes
-            validate_certs: no
+            return_content: true
+            validate_certs: false
           when: librenms_client_state == 'disabled'
           no_log: "{{ librenms_nolog | default(true) }}"
 
-        - name: enable librenms devices
+        - name: Enable librenms devices
           ansible.builtin.uri:
             url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}"
             method: PATCH
@@ -84,12 +84,12 @@
                 - 0
             headers:
               X-Auth-Token: "{{ librenms_api_token }}"
-            return_content: yes
-            validate_certs: no
+            return_content: true
+            validate_certs: false
           when: librenms_client_state != 'disabled'
           no_log: "{{ librenms_nolog | default(true) }}"
 
-        - name: update snmp v2c devices
+        - name: Update snmp v2c devices
           ansible.builtin.uri:
             url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}"
             method: PATCH
@@ -107,28 +107,28 @@
                 - "{{ librenms_client_snmp_community }}"
             headers:
               X-Auth-Token: "{{ librenms_api_token }}"
-            return_content: yes
-            validate_certs: no
+            return_content: true
+            validate_certs: false
           no_log: "{{ librenms_nolog | default(true) }}"
           when: librenms_client_snmp_version != 'v3'
 
-        - name: rediscover snmp devices
+        - name: Rediscover snmp devices
           ansible.builtin.uri:
             url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}/discover"
             body_format: json
             headers:
               X-Auth-Token: "{{ librenms_api_token }}"
-            validate_certs: no
+            validate_certs: false
           no_log: "{{ librenms_nolog | default(true) }}"
 
-    - name: unregister librenms devices
+    - name: Unregister librenms devices
       ansible.builtin.uri:
         url: "{{ librenms_url }}/api/v0/devices/{{ librenms_client_hostname }}"
         method: DELETE
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
-        return_content: yes
-        validate_certs: no
+        return_content: true
+        validate_certs: false
         status_code:
           - 200
           - 404
