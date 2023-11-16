@@ -18,15 +18,16 @@ platforms:
       - SYS_ADMIN
       - NET_RAW
     command: ${MOLECULE_IMAGE_COMMAND:-"/lib/systemd/systemd"}
+    cgroupns_mode: host
     privileged: true
     pre_build_image: true
     groups:
       - servers
     published_ports:
       - 8080:80/tcp
-
   - name: client
     image: geerlingguy/docker-${MOLECULE_CLIENT_DISTRO:-ubuntu2004}-ansible:latest
+    cgroupns_mode: host
     tmpfs:
       - /run
       - /tmp
@@ -56,10 +57,12 @@ scenario:
     - verify
     - cleanup
     - destroy
-
 provisioner:
   name: ansible
   log: true
+  config_options:
+    defaults:
+      callbacks_enabled: ansible.posix.profile_tasks
   inventory:
     group_vars:
       all:

@@ -1,7 +1,8 @@
 .PHONY: all ${MAKECMDGOALS}
 
 MOLECULE_SCENARIO ?= default
-MOLECULE_DOCKER_IMAGE ?= ubuntu2004
+MOLECULE_SERVER_DISTRO ?= ubuntu2004
+MOLECULE_CLIENT_DISTRO ?= ubuntu2004
 GALAXY_API_KEY ?=
 GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d: -f 2 | cut -d. -f 1)
 GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 1)
@@ -33,7 +34,8 @@ collections:
 requirements: roles collections
 
 dependency create prepare converge idempotence side-effect verify destroy login reset:
-	MOLECULE_DOCKER_IMAGE=${MOLECULE_DOCKER_IMAGE} poetry run molecule $@ -s ${MOLECULE_SCENARIO}
+	MOLECULE_SERVER_DISTRO=${MOLECULE_SERVER_DISTRO} MOLECULE_CLIENT_DISTRO=${MOLECULE_CLIENT_DISTRO} \
+        poetry run molecule $@ -s ${MOLECULE_SCENARIO}
 
 clean: destroy reset
 	poetry env remove $$(which python)

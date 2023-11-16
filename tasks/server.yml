@@ -64,7 +64,7 @@
   with_items:
     - 'lower_case_table_names=0'
     - 'innodb_file_per_table=1'
-  notify: restart mysql
+  notify: Restart mysql
 
 - name: Flush_handlers
   ansible.builtin.meta: flush_handlers
@@ -92,7 +92,7 @@
     line: "date.timezone = {{ librenms_php_timezone }}"
   loop: "{{ _librenms_php_ini_timezone }}"
   notify:
-    - restart fpm
+    - Restart fpm
 
 - name: Enable php mcrypt
   ansible.builtin.command: phpenmod mcrypt
@@ -133,8 +133,8 @@
     name: "{{ librenms_nginx_user }}"
     groups: "{{ librenms_group }}"
   notify:
-    - restart fpm
-    - restart nginx
+    - Restart fpm
+    - Restart nginx
 
 - name: Create librenms user
   ansible.builtin.user:
@@ -149,7 +149,7 @@
     owner: "{{ librenms_user }}"
     group: "{{ librenms_group }}"
     state: directory
-    mode: "0x770"
+    mode: "0770"
   changed_when: false
 
 - name: Retrieve safe directory list from git config
@@ -182,7 +182,7 @@
     path: "{{ librenms_root }}"
     owner: "{{ librenms_user }}"
     group: "{{ librenms_group }}"
-    mode: "0x771"
+    mode: "0771"
     state: directory
   changed_when: false
 
@@ -205,7 +205,7 @@
   ansible.builtin.template:
     src: config.php.j2
     dest: "{{ librenms_root }}/config.php"
-    mode: "0x750"
+    mode: "0750"
   vars:
     librenms_config_db_name: "{{ librenms_db_name }}"
     librenms_config_db_user: "{{ librenms_db_user }}"
@@ -222,8 +222,8 @@
     oxidized_backend_proto: "{{ librenms_oxidized_backend_proto }}"
     oxidized_backend_port: "{{ librenms_oxidized_backend_port }}"
   notify:
-    - restart fpm
-    - restart nginx
+    - Restart fpm
+    - Restart nginx
 
 - name: Set librenms folder write permissions
   ansible.builtin.command: "chown -R {{ librenms_user }}:{{ librenms_group }} {{ librenms_root }}"
@@ -237,7 +237,7 @@
     creates: "{{ librenms_root }}/composer.phar"
   become_user: "{{ librenms_user }}"
   become: true
-  notify: restart fpm
+  notify: Restart fpm
 
 - name: Run librenms daily
   ansible.builtin.command: "{{ librenms_root }}/daily.sh"
@@ -280,8 +280,8 @@
     remote_src: true
     group: root
     owner: root
-    mode: "0x644"
-  notify: restart cron
+    mode: "0644"
+  notify: Restart cron
 
 - name: Manage logrotate config
   ansible.builtin.copy:
@@ -290,13 +290,13 @@
     remote_src: true
     group: root
     owner: root
-    mode: "0x644"
+    mode: "0644"
 
 - name: Create librenm directories
   ansible.builtin.file:
     path: "{{ librenms_backup_target }}"
     state: directory
-    mode: "0x755"
+    mode: "0755"
 
 - name: Manage librenms backups
   when: librenms_backup_enable
@@ -308,7 +308,7 @@
         dest: "{{ librenms_backup_bin }}"
         group: root
         owner: root
-        mode: "0x750"
+        mode: "0750"
       vars:
         backup_identifier: "{{ librenms_backup_identifier }}"
         backup_path: "{{ librenms_backup_target }}"
@@ -324,7 +324,7 @@
         dest: "{{ librenms_restore_bin }}"
         group: root
         owner: root
-        mode: "0x750"
+        mode: "0750"
       vars:
         backup_identifier: "{{ librenms_backup_identifier }}"
         backup_path: "{{ librenms_backup_target }}"
@@ -347,7 +347,7 @@
           echo run librenms-backup to manually force librenms backup creation
           echo run librenms-restore to manually restore latest librenms backup
           echo
-        mode: "0x755"
+        mode: "0755"
 
 - name: Flush_handlers
   ansible.builtin.meta: flush_handlers
