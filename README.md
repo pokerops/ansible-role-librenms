@@ -46,8 +46,8 @@ Please make sure your environment has [podman](https://podman.io) installed in o
 
 Role is tested against the following distributions (docker images):
 
-  * Ubuntu Focal
- * Debian Buster
+ * Ubuntu Focal
+ * Ubuntu Jammy
 
 You can test the role directly from sources using the following commands
 
