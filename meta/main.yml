@@ -1,16 +1,19 @@
 ---
 galaxy_info:
   role_name: librenms
-  namespace: pokerops
   author: pokerops
   description: An Ansible role to install and configure librenms
   license: MIT
   min_ansible_version: 2.9.11
   platforms:
+    - name: EL
+      versions:
+        - all
     - name: Ubuntu
       versions:
-        - bionic
         - focal
+        - jammy
+  galaxy_tags: ['librenms']
 
 dependencies:
   - role: nephelaiio.plugins
