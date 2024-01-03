@@ -245,6 +245,7 @@
     path: "{{ librenms_root }}/.env"
     regexp: '^#{{ item.key }}='
     line: "{{ item.key }}={{ item.value }}"
+    backrefs: true
   when: _librenms_env.stat.exists
   loop:
     - key: "DB_HOST"
@@ -263,7 +264,8 @@
     - Restart nginx
 
 - name: Get list of current librenms tables
-  ansible.builtin.command: "mysql -u{{ _user }} -p{{ _pass }} {{ _db }} -e 'SHOW TABLES'"
+  ansible.builtin.command: >
+    mysql -u{{ _user }} -p{{ _pass }} {{ _db }} -e 'SHOW TABLES'
   vars:
     _user: "{{ librenms_db_user }}"
     _pass: "{{ librenms_db_pass }}"
