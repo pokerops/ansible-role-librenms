@@ -243,8 +243,8 @@
 - name: Manage librenms env file
   ansible.builtin.lineinfile:
     path: "{{ librenms_root }}/.env"
-    regexp: '^#{{ item.key }}='
-    line: "{{ item.key }}={{ item.value }}"
+    regexp: '^#{{ item.key }}=.*'
+    line: '{{ item.key }}="{{ item.value }}"'
     backrefs: true
   when: _librenms_env.stat.exists
   loop:
