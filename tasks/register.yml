@@ -47,6 +47,8 @@
               - 200
               - 201
           register: _librenms_create_device
+          retries: "{{ librenms_task_retries | default('5') }}"
+          delay: "{{ librenms_task_delay | default('30') }}"
           until: _librenms_create_device is success
           when: not librenms_client_hostname in librenms_hostnames
           no_log: "{{ librenms_nolog | default(true) }}"
