@@ -39,7 +39,7 @@
         method: PATCH
         body_format: json
         body:
-          fields:
+          field:
             - disabled
           data:
             - 1
