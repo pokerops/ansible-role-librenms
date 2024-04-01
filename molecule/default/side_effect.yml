@@ -166,6 +166,19 @@
           when: inventory_hostname in groups[server_group]
           block:
 
+            - name: set librenms device facts - Disabled
+              ansible.builtin.set_fact:
+                librenms_device_list:
+                  - hostname: localhost
+                    display: server
+                    state: disabled
+
+            - name: Disabled librenms devices
+              ansible.builtin.include_role:
+                name: pokerops.librenms
+              vars:
+                librenms_client_install: false
+
             - name: Query librenms registrations
               ansible.builtin.uri:
                 url: "{{ librenms_url }}/api/v0/devices?type=all"
