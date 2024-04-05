@@ -217,7 +217,7 @@
               ansible.builtin.assert:
                 that:
                   - unregistered | length == 0
-                  - unregistered_disabled | length == 0
+                  - librenms_disabled_devices  | length > 0
 
             - name: Print librenms disabled devices
               ansible.builtin.debug:
