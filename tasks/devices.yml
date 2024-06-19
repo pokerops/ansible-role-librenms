@@ -26,6 +26,7 @@
           X-Auth-Token: "{{ librenms_api_token }}"
         return_content: true
       register: _librenms_devices
+      run_once: true
       no_log: "{{ librenms_nolog }}"
 
     - name: Map librenms registrations
