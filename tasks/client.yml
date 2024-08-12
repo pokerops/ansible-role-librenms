@@ -2,7 +2,6 @@
 - name: Manage client configuration
   when: librenms_client_state == 'present'
   block:
-
     - name: Verify client version
       ansible.builtin.fail:
         msg: "librenms_client_snmp_version must be one of {{ librenms_client_snmp_version_valid }}"
