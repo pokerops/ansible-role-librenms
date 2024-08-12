@@ -225,6 +225,10 @@
   ansible.builtin.command: "chown -R {{ librenms_user }}:{{ librenms_group }} {{ librenms_root }}"
   tags: skip_ansible_lint
   changed_when: false
+  register: _librenms_folder_write
+  retries: "{{ librenms_install_retry_attempts }}"
+  delay: "{{ librenms_install_retry_delay }}"
+  until: _librenms_folder_write is success
 
 - name: Install librenms dependencies
   ansible.builtin.command: |
@@ -355,7 +359,6 @@
 - name: Manage librenms backups
   when: librenms_backup_enable
   block:
-
     - name: Create librenms backup script
       ansible.builtin.template:
         src: librenms-backup.sh.j2

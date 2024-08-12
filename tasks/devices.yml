@@ -2,7 +2,6 @@
 - name: Manage client device registrations
   delegate_to: "{{ librenms_device_delegate }}"
   block:
-
     - name: Filter device definitions
       ansible.builtin.set_fact:
         librenms_devices_enabled: "{{ librenms_device_list | difference(_devices_absent) | difference(_devices_disabled) }}"
@@ -29,11 +28,6 @@
       run_once: true
       no_log: "{{ librenms_nolog }}"
 
-    - name: Map librenms registrations
-      ansible.builtin.set_fact:
-        librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
-      no_log: "{{ librenms_nolog }}"
-
     - name: Disable librenms devices
       ansible.builtin.uri:
         url: "{{ librenms_url }}/api/v0/devices/{{ item.hostname }}"
@@ -56,6 +50,8 @@
         method: DELETE
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
+      vars:
+        librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
       when:
         - item.hostname in librenms_hostnames
         - item.state | default('present') == 'absent'
@@ -79,6 +75,8 @@
         status_code:
           - 200
           - 201
+      vars:
+        librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
       when: not item.hostname in librenms_hostnames
       loop: "{{ librenms_devices_v2 }}"
       no_log: "{{ librenms_nolog }}"
@@ -132,6 +130,7 @@
           - 201
       vars:
         _version:
+        librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
       when: not item.hostname in librenms_hostnames
       loop: "{{ librenms_devices_v3 }}"
       no_log: "{{ librenms_nolog }}"

@@ -2,7 +2,6 @@
 - name: Manage client device registrations
   delegate_to: "{{ librenms_client_delegate }}"
   block:
-
     - name: Query librenms devices
       ansible.builtin.uri:
         url: "{{ librenms_url }}/api/v0/devices?type=all"
@@ -14,15 +13,9 @@
       run_once: true
       tags: always
 
-    - name: Map librenms registrations
-      ansible.builtin.set_fact:
-        librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
-      tags: always
-
     - name: Register librenms devices
       when: librenms_client_state != 'absent'
       block:
-
         - name: Create librenms devices
           ansible.builtin.uri:
             url: "{{ librenms_url }}/api/v0/devices"
@@ -47,6 +40,8 @@
             status_code:
               - 200
               - 201
+          vars:
+            librenms_hostnames: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
           register: _librenms_create_device
           retries: "{{ librenms_task_retries | default('5') }}"
           delay: "{{ librenms_task_delay | default('30') }}"
