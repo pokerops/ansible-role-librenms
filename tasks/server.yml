@@ -45,6 +45,7 @@
   ansible.builtin.include_role:
     name: geerlingguy.mysql
   vars:
+    mysql_disable_log_bin: false
     mysql_packages: "{{ _librenms_mysql_packages }}"
     mysql_databases:
       - name: "{{ librenms_db_name }}"
