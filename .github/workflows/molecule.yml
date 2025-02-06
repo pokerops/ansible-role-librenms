@@ -19,12 +19,12 @@ jobs:
     strategy:
       matrix:
         server:
-          - ubuntu2004
           - ubuntu2204
+          - ubuntu2404
         client:
-          - ubuntu2004
           - ubuntu2204
-          - rockylinux8
+          - ubuntu2404
+          - rockylinux9
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
