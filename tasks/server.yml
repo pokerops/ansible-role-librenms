@@ -115,7 +115,7 @@
 
 - name: Debug output
   ansible.builtin.debug:
-    msg: "{{ php_output }}"
+    msg: "{{ php_output.stdout_lines }}"
 
 - name: Enforce fail
   ansible.builtin.fail:
