@@ -45,7 +45,7 @@
   ansible.builtin.include_role:
     name: geerlingguy.mysql
   vars:
-    mysql_replication_master_inventory_host: "{{ inventory_hostname }}"
+    mysql_replication_master : "{{ inventory_hostname }}"
     mysql_disable_log_bin: false
     mysql_packages: "{{ _librenms_mysql_packages }}"
     mysql_databases:
