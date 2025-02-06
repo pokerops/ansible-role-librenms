@@ -105,20 +105,6 @@
     name: "php{{ _librenms_php_version }}-fpm"
     state: started
     enabled: true
-  ignore_errors: true
-  tags: skip_ansible_lint
-
-- name: Get service status
-  ansible.builtin.command: journalctl -xeu php8.2-fpm.service
-  register: php_output
-  changed_when: false
-
-- name: Debug output
-  ansible.builtin.debug:
-    msg: "{{ php_output.stdout_lines }}"
-
-- name: Enforce fail
-  ansible.builtin.fail:
 
 - name: Install librenms packages
   ansible.builtin.package:
