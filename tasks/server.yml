@@ -109,7 +109,7 @@
   tags: skip_ansible_lint
 
 - name: Get service status
-  ansible.builtin.command: systemctl status php8.2-fpm
+  ansible.builtin.command: journalctl -xeu php8.2-fpm.service
   register: php_output
   changed_when: false
 
