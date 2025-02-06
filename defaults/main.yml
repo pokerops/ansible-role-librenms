@@ -25,6 +25,8 @@ librenms_packages_default:
     - python3-setuptools
     - python3-systemd
     - python3-pip
+    - python3-psutil
+    - traceroute
     - cron
   default: []
 
@@ -142,10 +144,9 @@ librenms_nginx_vhost_proto:
         gzip_types text/css application/javascript text/javascript application/x-javascript image/svg+xml text/plain text/xsd text/xsl text/xml image/x-icon;
         {{ librenms_nginx_vhost_extra }}
 librenms_nginx_vhosts: "{{ librenms_nginx_vhost_proto[librenms_url | urlsplit('scheme')] }}"
-
 librenms_group: librenms
 librenms_user: librenms
-librenms_release: 23.10.0
+librenms_release: 25.1.0
 
 librenms_db_host: localhost
 librenms_db_name: librenms
@@ -158,7 +159,7 @@ librenms_admin_email: "admin@example.com"
 librenms_php_webserver_daemon: nginx
 librenms_php_use_managed_ini: false
 librenms_php_version_default:
-  default: 8.2
+  default: 8.3
 librenms_php_timezone: "UTC"
 librenms_memory_limit: "4096M"
 librenms_folder_permissions:
@@ -187,7 +188,7 @@ librenms_oxidized_backend_port: "8888"
 librenms_client_delegate: "{{ inventory_hostname }}"
 librenms_client_hostname: "{{ ansible_default_ipv4.address }}"
 librenms_client_display: "{{ inventory_hostname }}"
-librenms_client_state: 'present'
+librenms_client_state: "present"
 librenms_client_snmp_port: 161
 librenms_client_snmp_install: true
 librenms_client_snmp_version: "v2c"

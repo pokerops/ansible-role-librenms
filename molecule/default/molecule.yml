@@ -8,7 +8,7 @@ driver:
   name: docker
 platforms:
   - name: server
-    image: geerlingguy/docker-${MOLECULE_SERVER_DISTRO:-ubuntu2004}-ansible:latest
+    image: geerlingguy/docker-${MOLECULE_SERVER_DISTRO:-ubuntu2204}-ansible:latest
     tmpfs:
       - /run
       - /tmp
@@ -26,7 +26,7 @@ platforms:
     published_ports:
       - 8080:80/tcp
   - name: client
-    image: geerlingguy/docker-${MOLECULE_CLIENT_DISTRO:-ubuntu2004}-ansible:latest
+    image: geerlingguy/docker-${MOLECULE_CLIENT_DISTRO:-ubuntu2204}-ansible:latest
     cgroupns_mode: host
     tmpfs:
       - /run
