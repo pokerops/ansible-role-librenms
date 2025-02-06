@@ -417,6 +417,8 @@
   become_user: "{{ librenms_user }}"
   become: true
   changed_when: false
+  retries: 3
+  delay: 60
 
 - name: Validate librenms installation
   ansible.builtin.debug:
