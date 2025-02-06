@@ -15,7 +15,7 @@ defaults:
 jobs:
   molecule:
     name: molecule tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         server:
@@ -34,13 +34,13 @@ jobs:
       - name: Set up python 3
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.x"
 
       - name: Update ubuntu repositories
         run: sudo apt-get update
 
       - name: Install make
-        run: sudo apt-get install -y make
+        run: sudo apt-get install -y make snmp-mibs-downloader
 
       - name: Install dependencies
         run: make install
