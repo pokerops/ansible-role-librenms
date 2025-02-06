@@ -157,7 +157,7 @@ librenms_admin_email: "admin@example.com"
 librenms_php_webserver_daemon: nginx
 librenms_php_use_managed_ini: false
 librenms_php_version_default:
-  default: 8.3
+  default: 8.2
 librenms_php_timezone: "UTC"
 librenms_memory_limit: "4096M"
 librenms_folder_permissions:
