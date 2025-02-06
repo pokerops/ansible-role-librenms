@@ -45,7 +45,7 @@
   ansible.builtin.include_role:
     name: geerlingguy.mysql
   vars:
-    mysql_replication_master : "{{ inventory_hostname }}"
+    mysql_replication_master: "{{ inventory_hostname }}"
     mysql_disable_log_bin: false
     mysql_packages: "{{ _librenms_mysql_packages }}"
     mysql_databases:
@@ -64,8 +64,8 @@
     regexp: '^#?{{ item | split("=") | first }} *='
     line: "{{ item }}"
   with_items:
-    - 'lower_case_table_names=0'
-    - 'innodb_file_per_table=1'
+    - "lower_case_table_names=0"
+    - "innodb_file_per_table=1"
   notify: Restart mysql
 
 - name: Flush_handlers
@@ -154,18 +154,18 @@
   changed_when: false
 
 - name: Retrieve safe directory list from git config
-  ansible.builtin.command: git config --get-all safe.directory  # noqa command-instead-of-module
+  ansible.builtin.command: git config --get-all safe.directory # noqa command-instead-of-module
   failed_when: false
   changed_when: false
   register: _gitconfig
 
 - name: Remove git config safe directories
-  ansible.builtin.command: git config --global --unset-all safe.directory  # noqa command-instead-of-module
+  ansible.builtin.command: git config --global --unset-all safe.directory # noqa command-instead-of-module
   changed_when: false
   when: _gitconfig.stdout != ""
 
 - name: Add git repos to safe directories
-  ansible.builtin.command: "git config --global --add safe.directory {{ item }}"  # noqa command-instead-of-module
+  ansible.builtin.command: "git config --global --add safe.directory {{ item }}" # noqa command-instead-of-module
   changed_when: false
   loop:
     - "{{ librenms_root }}"
@@ -249,7 +249,7 @@
 - name: Manage librenms env file
   ansible.builtin.lineinfile:
     path: "{{ librenms_root }}/.env"
-    regexp: '^#{{ item.key }}=.*'
+    regexp: "^#{{ item.key }}=.*"
     line: '{{ item.key }}="{{ item.value }}"'
     backrefs: true
   when: _librenms_env.stat.exists
