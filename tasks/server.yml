@@ -110,10 +110,10 @@
 - ansible.builtin.shell: systemctl status php8.2-fpm
   register: php_output
 
-- debug:
+- ansible.builtin.debug:
     msg: "{{ php_output }}"
 
-- fail:
+- ansible.builtin.fail:
 
 - name: Install librenms packages
   ansible.builtin.package:
