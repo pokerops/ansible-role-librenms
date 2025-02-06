@@ -106,6 +106,7 @@
     state: started
     enabled: true
   ignore_errors: true
+  tags: skip_ansible_lint
 
 - ansible.builtin.shell: systemctl status php8.2-fpm
   register: php_output
