@@ -166,6 +166,19 @@
           when: inventory_hostname in groups[server_group]
           block:
 
+            - name: set librenms device facts - Disabled
+              ansible.builtin.set_fact:
+                librenms_device_list:
+                  - hostname: localhost
+                    display: server
+                    state: disabled
+
+            - name: Disabled librenms devices
+              ansible.builtin.include_role:
+                name: pokerops.librenms
+              vars:
+                librenms_client_install: false
+
             - name: Query librenms registrations
               ansible.builtin.uri:
                 url: "{{ librenms_url }}/api/v0/devices?type=all"
@@ -179,11 +192,33 @@
               ansible.builtin.debug:
                 var: _librenms_devices
 
-            - name: Verify librenms device registration
-              ansible.builtin.fail:
-                msg: "devices [{{ ', '.join(_unregistered) }}] have not been registered to librenms"
+            - name: Facts librenms device registration
+              ansible.builtin.set_fact:
+                registrations: "{{ _registrations }}"
+                registered: "{{ _registered }}"
+                registrations_disabled: "{{ _registrations_disabled }}"
+                registrations_disabled_names: "{{ _registrations_disabled_names }}"
+                unregistered: "{{ _unregistered }}"
+                unregistered_disabled: "{{ _unregistered_disabled }}"
+                librenms_disabled_devices: "{{ _librenms_disabled_devices }}"
+                librenms_disabled_names: "{{ _librenms_disabled_names }}"
               vars:
-                _registrations: "{{ librenms_device_list | map(attribute='display') | list }}"
-                _registered: "{{ _librenms_devices.json.devices | map(attribute='display') | list }}"
+                _librenms_device_list: "{{ librenms_device_list }}"
+                _registrations: "{{ _librenms_device_list | map(attribute='hostname') | list }}"
+                _registrations_disabled: "{{ _librenms_device_list  | selectattr('state', 'defined' ) | selectattr('state', 'equalto', 'disabled') | list }}"
+                _registrations_disabled_names: "{{ _registrations_disabled  | map(attribute='hostname') | list }}"
+                _registered: "{{ _librenms_devices.json.devices | map(attribute='hostname') | list }}"
+                _librenms_disabled_devices: "{{ _librenms_devices.json.devices | selectattr('disabled', 'defined' ) | selectattr('disabled', 'equalto', 1) | list }}"
+                _librenms_disabled_names: "{{ _librenms_disabled_devices | map(attribute='hostname') | list }}"
                 _unregistered: "{{ _registrations | difference(_registered) | list }}"
-              when: _unregistered | length > 0
+                _unregistered_disabled: "{{ _registrations_disabled_names | difference(_librenms_disabled_names) | list }}"
+
+            - name: Verify librenms device registration
+              ansible.builtin.assert:
+                that:
+                  - unregistered | length == 0
+                  - librenms_disabled_devices  | length > 0
+
+            - name: Print librenms disabled devices
+              ansible.builtin.debug:
+                msg: "{{ registrations_disabled_names }}"
