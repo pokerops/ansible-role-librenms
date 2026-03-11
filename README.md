@@ -13,12 +13,12 @@ Please refer to the [defaults file](/defaults/main.yml) for an up to date list o
 
 The following roles must be accessible to the host executing this role
 
-* nephelaiio.plugins
-* nephelaiio.nfs
-* geerlingguy.nginx
-* geerlingguy.mysql
-* geerlingguy.php
-* geerlingguy.php-versions
+- nephelaiio.plugins
+- nephelaiio.nfs
+- geerlingguy.nginx
+- geerlingguy.mysql
+- geerlingguy.php
+- geerlingguy.php-versions
 
 ## Operating modes and examples
 
@@ -46,17 +46,17 @@ Please make sure your environment has [podman](https://podman.io) installed in o
 
 Role is tested against the following distributions (docker images):
 
- * Ubuntu Focal
- * Ubuntu Jammy
+- Ubuntu Jammy
+- Ubuntu Noble
 
 You can test the role directly from sources using the following commands
 
- ``` sh
- $ poetry install
- $ poetry run molecule test
+```sh
+$ devbox shell
+$ make create
+$ make test
 ```
 
 ## License
 
 This project is licensed under the terms of the [MIT License](/LICENSE)
-
