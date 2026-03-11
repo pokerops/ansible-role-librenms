@@ -56,6 +56,7 @@
       - name: "{{ librenms_db_user }}"
         password: "{{ librenms_db_pass }}"
         priv: "{{ librenms_db_name }}.*:ALL"
+    mysql_daemon: mariadb
 
 - name: Disable mysql strict mode
   ansible.builtin.lineinfile:
@@ -76,7 +77,6 @@
     name: geerlingguy.php-versions
   vars:
     php_version: "{{ _librenms_php_version }}"
-    php_packages: "{{ _librenms_php_packages }}"
 
 - name: Install php
   ansible.builtin.include_role:
@@ -122,7 +122,7 @@
     nginx_certificate_hostname: "{{ librenms_nginx_certificate_hostname }}"
     nginx_certificate_chainfile: "{{ librenms_nginx_certificate_chainfile }}"
     nginx_certificate_keyfile: "{{ librenms_nginx_certificate_keyfile }}"
-  when: librenms_nginx_install
+  when: librenms_nginx_install | bool
 
 - name: Create librenms group
   ansible.builtin.group:
@@ -252,7 +252,7 @@
     regexp: "^#{{ item.key }}=.*"
     line: '{{ item.key }}="{{ item.value }}"'
     backrefs: true
-  when: _librenms_env.stat.exists
+  when: _librenms_env.stat.exists | bool
   loop:
     - key: "DB_HOST"
       value: "{{ librenms_db_host }}"
@@ -313,7 +313,7 @@
   register: _librenms_add_admin_user_result
   changed_when: "'already exists' not in _librenms_add_admin_user_result.stdout"
 
-- name: Cron job for cleaup database daily
+- name: Cron job for cleanup database daily
   ansible.builtin.cron:
     name: cleanupDB
     job: "{{ librenms_root }}/daily.sh"
