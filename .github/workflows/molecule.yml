@@ -16,10 +16,11 @@ jobs:
         server:
           - ubuntu2204
           - ubuntu2404
+          - debian12
         client:
           - ubuntu2204
           - ubuntu2404
-          - rockylinux9
+          - debian12
     steps:
       - name: Disable apparmor
         run: |
