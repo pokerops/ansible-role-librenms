@@ -1,21 +1,16 @@
 ---
 name: molecule
-
 on:
   pull_request:
     branches:
       - master
-  schedule:
-    - cron: "0 5 * * 5"
-
-defaults:
-  run:
-    working-directory: "pokerops.librenms"
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   molecule:
     name: molecule tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         server:
@@ -26,28 +21,6 @@ jobs:
           - ubuntu2404
           - rockylinux9
     steps:
-      - name: Check out the codebase
-        uses: actions/checkout@v4
-        with:
-          path: "pokerops.librenms"
-
-      - name: Set up python 3
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
-      - name: Update ubuntu repositories
-        run: sudo apt-get update
-
-      - name: Install make
-        run: sudo apt-get install -y make
-
-      - name: Install dependencies
-        run: make install
-
-      - name: Debug test environment
-        run: make debug
-
       - name: Disable apparmor
         run: |
           set -x
@@ -55,11 +28,14 @@ jobs:
           sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
           sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
 
-      - name: Run molecule tests
-        run: make test
+      - name: Run molecule test
+        uses: pokerops/ansible-utils@master
+        with:
+          run: "make install requirements test"
         env:
           PY_COLORS: "1"
           ANSIBLE_FORCE_COLOR: "1"
+          MOLECULE_SCENARIO: default
           MOLECULE_SERVER_DISTRO: ${{ matrix.server }}
           MOLECULE_CLIENT_DISTRO: ${{ matrix.client }}
           MOLECULE_IMAGE_COMMAND: /lib/systemd/systemd
