@@ -10,7 +10,7 @@ concurrency:
 jobs:
   molecule:
     name: molecule tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         server:
@@ -21,13 +21,6 @@ jobs:
           - ubuntu2404
           - debian12
     steps:
-      - name: Disable apparmor
-        run: |
-          set -x
-          sudo apt-get install apparmor-profiles
-          sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
-          sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
-
       - name: Run molecule test
         uses: pokerops/ansible-utils@master
         with:
