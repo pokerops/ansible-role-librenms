@@ -28,6 +28,8 @@ librenms_packages_default:
     - python3-psutil
     - traceroute
     - cron
+  ubuntu2404:
+    - python3-command-runner
   default: []
 
 librenms_install_retry_attempts: 4
@@ -51,7 +53,7 @@ librenms_mysql_packages_default:
   debian:
     - mariadb-client
     - mariadb-server
-    - python3-mysqldb
+    - python3-pymysql
   default: []
 librenms_mysql_config_path_default:
   debian: "/etc/mysql/mariadb.conf.d/50-server.cnf"
@@ -96,7 +98,7 @@ librenms_nginx_vhost_extra: |
     try_files $uri $uri/ /api_v0.php?$query_string;
   }
   location ~ \.php {
-    include fastcgi.conf;
+    include /etc/nginx/fastcgi.conf;
     fastcgi_split_path_info ^(.+\.php)(/.+)$;
     fastcgi_pass unix:/var/run/php/php{{ _librenms_php_version }}-fpm.sock;
   }

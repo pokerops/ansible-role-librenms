@@ -8,3 +8,5 @@ Gemfile.lock
 playbook.retry
 .DS_Store
 .project
+roles/
+molecule/**/roles/
