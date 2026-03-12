@@ -1,12 +1,8 @@
 ---
 - name: Server side effect
-
   hosts: server
-
   become: true
-
   tasks:
-
     - name: Take librenms backup
       ansible.builtin.command: /usr/local/bin/librenms-backup
       register: _backup_script
@@ -49,23 +45,15 @@
     - name: Perform librenms restore
       ansible.builtin.command: /usr/local/bin/librenms-restore
 
-
 - name: Client side effect
-
   hosts: all
-
   become: true
-
   vars:
-
     side_effect_version: v2c
     side_effect_community: verify
-
   tasks:
-
     - name: Set general facts
       block:
-
         - name: Gather localhost facts
           ansible.builtin.setup:
           delegate_to: localhost
@@ -80,7 +68,6 @@
       tags: client
       when: inventory_hostname in groups[server_group]
       block:
-
         - name: Create api token
           ansible.builtin.command: "php {{ librenms_root }}/addtoken.php {{ librenms_admin_user }}"
           register: _api_cmd
@@ -119,11 +106,9 @@
       ansible.builtin.meta: flush_handlers
 
   post_tasks:
-
     - name: Post converge verification tasks
       tags: verify
       block:
-
         - name: Verify local snmp daemon
           ansible.builtin.command: "snmpget -v {{ _version }} -c {{ _community }} localhost .1.3.6.1.2.1.1"
           vars:
@@ -165,7 +150,6 @@
         - name: Verify device registrations
           when: inventory_hostname in groups[server_group]
           block:
-
             - name: Query librenms registrations
               ansible.builtin.uri:
                 url: "{{ librenms_url }}/api/v0/devices?type=all"

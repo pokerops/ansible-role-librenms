@@ -26,9 +26,10 @@ librenms_packages_default:
     - python3-systemd
     - python3-pip
     - python3-psutil
-    - python3-command-runner
     - traceroute
     - cron
+  ubuntu2404:
+    - python3-command-runner
   default: []
 
 librenms_install_retry_attempts: 4
@@ -160,7 +161,7 @@ librenms_admin_email: "admin@example.com"
 librenms_php_webserver_daemon: nginx
 librenms_php_use_managed_ini: false
 librenms_php_version_default:
-  default: 8.4
+  default: 8.3
 librenms_php_timezone: "UTC"
 librenms_memory_limit: "4096M"
 librenms_folder_permissions:
