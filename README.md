@@ -13,7 +13,6 @@ Please refer to the [defaults file](/defaults/main.yml) for an up to date list o
 
 The following roles must be accessible to the host executing this role
 
-- nephelaiio.plugins
 - nephelaiio.nfs
 - geerlingguy.nginx
 - geerlingguy.mysql
@@ -53,8 +52,8 @@ You can test the role directly from sources using the following commands
 
 ```sh
 $ devbox shell
-$ make create
-$ make test
+$ just create
+$ just test
 ```
 
 ## License

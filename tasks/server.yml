@@ -1,10 +1,10 @@
 ---
 - name: Include variable overrides
   ansible.builtin.set_fact:
-    _librenms_packages: "{{ librenms_package | default(librenms_packages_default | sorted_get(overrides)) }}"
-    _librenms_mysql_packages: "{{ librenms_mysql_packages | default(librenms_mysql_packages_default | sorted_get(overrides)) }}"
-    _librenms_php_version: "{{ librenms_php_version | default(librenms_php_version_default | sorted_get(overrides)) }}"
-    _librenms_mysql_config_path: "{{ librenms_mysql_config_path | default(librenms_mysql_config_path_default | sorted_get(overrides)) }}"
+    _librenms_packages: "{{ librenms_package | default(librenms_packages_default | nephelaiio.plugins.sorted_get(overrides)) }}"
+    _librenms_mysql_packages: "{{ librenms_mysql_packages | default(librenms_mysql_packages_default | nephelaiio.plugins.sorted_get(overrides)) }}"
+    _librenms_php_version: "{{ librenms_php_version | default(librenms_php_version_default | nephelaiio.plugins.sorted_get(overrides)) }}"
+    _librenms_mysql_config_path: "{{ librenms_mysql_config_path | default(librenms_mysql_config_path_default | nephelaiio.plugins.sorted_get(overrides)) }}"
   vars:
     overrides:
       - "{{ ansible_distribution | lower }}-{{ ansible_distribution_release | lower }}"
@@ -15,13 +15,13 @@
 
 - name: Php version validation
   ansible.builtin.fail:
-    msg: "PHP version 8.1.x is the minimun supported version."
+    msg: "PHP version 8.1.x is the minimum supported version."
   when: _librenms_php_version is version('8.1', operator='lt')
 
 - name: Set php packages
   ansible.builtin.set_fact:
-    _librenms_php_packages: "{{ librenms_php_packages | default(librenms_php_packages_default | sorted_get(overrides)) }}"
-    _librenms_php_ini_timezone: "{{ librenms_php_ini_timezone | default(librenms_php_ini_timezone_default | sorted_get(overrides)) }}"
+    _librenms_php_packages: "{{ librenms_php_packages | default(librenms_php_packages_default | nephelaiio.plugins.sorted_get(overrides)) }}"
+    _librenms_php_ini_timezone: "{{ librenms_php_ini_timezone | default(librenms_php_ini_timezone_default | nephelaiio.plugins.sorted_get(overrides)) }}"
   vars:
     overrides:
       - "{{ ansible_distribution | lower }}-{{ ansible_distribution_release | lower }}"
@@ -202,6 +202,24 @@
     - "{{ librenms_root }}/storage/"
   changed_when: false
 
+- name: Manage librenms directories
+  ansible.builtin.file:
+    path: "{{ librenms_root }}/rrd"
+    owner: "{{ librenms_user }}"
+    group: "{{ librenms_group }}"
+    state: directory
+    mode: "0775"
+  changed_when: false
+
+- name: Create librenms lnms command symlink
+  ansible.builtin.file:
+    src: "{{ librenms_root }}/lnms"
+    dest: "/usr/local/bin/lnms"
+    owner: "{{ librenms_user }}"
+    group: "{{ librenms_group }}"
+    state: link
+  changed_when: false
+
 - name: Manage librenms configuration
   ansible.builtin.template:
     src: config.php.j2
@@ -352,7 +370,21 @@
     - librenms-scheduler.timer
   notify: Restart scheduler
 
-- name: Create librenm directories
+- name: Start scheduler services
+  ansible.builtin.service:
+    name: "librenms-scheduler.timer"
+    state: started
+    enabled: true
+
+- name: Manage scheduler config
+  ansible.builtin.copy:
+    src: "{{ librenms_root }}/misc/lnms-completion.bash"
+    dest: "/etc/bash_completion.d/"
+    remote_src: true
+    group: root
+    owner: root
+
+- name: Create librenms directories
   ansible.builtin.file:
     path: "{{ librenms_backup_target }}"
     state: directory
@@ -420,7 +452,7 @@
       become_user: "{{ librenms_user }}"
       become: true
       changed_when: false
-      retries: 5
+      retries: 10
       delay: 60
       until: _validate_output is success
 

@@ -3,33 +3,37 @@ librenms_server_install: false
 librenms_client_install: true
 librenms_client_register: "{{ librenms_client_install }}"
 
+librenms_packages_default_debian:
+  - acl
+  - curl
+  - composer
+  - fping
+  - git
+  - graphviz
+  - imagemagick
+  - mtr-tiny
+  - nmap
+  - rrdtool
+  - snmp
+  - snmpd
+  - whois
+  - unzip
+  - python3-pymysql
+  - python3-dotenv
+  - python3-redis
+  - python3-setuptools
+  - python3-systemd
+  - python3-pip
+  - python3-psutil
+  - traceroute
+  - cron
+
+librenms_packages_default_ubuntu_noble:
+  - python3-command-runner
+
 librenms_packages_default:
-  debian:
-    - acl
-    - curl
-    - composer
-    - fping
-    - git
-    - graphviz
-    - imagemagick
-    - mtr-tiny
-    - nmap
-    - rrdtool
-    - snmp
-    - snmpd
-    - whois
-    - unzip
-    - python3-pymysql
-    - python3-dotenv
-    - python3-redis
-    - python3-setuptools
-    - python3-systemd
-    - python3-pip
-    - python3-psutil
-    - traceroute
-    - cron
-  ubuntu2404:
-    - python3-command-runner
+  debian: "{{ librenms_packages_default_debian }}"
+  ubuntu-noble: "{{ librenms_packages_default_debian + librenms_packages_default_ubuntu_noble }}"
   default: []
 
 librenms_install_retry_attempts: 4

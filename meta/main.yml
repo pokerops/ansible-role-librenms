@@ -13,7 +13,6 @@ galaxy_info:
       versions:
         - focal
         - jammy
-  galaxy_tags: ['librenms']
+  galaxy_tags: ["librenms"]
 
-dependencies:
-  - role: nephelaiio.plugins
+dependencies: []

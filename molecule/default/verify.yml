@@ -42,8 +42,8 @@
         url: "{{ librenms_url }}/api/v0/devices?type=all"
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
-        return_content: yes
-        validate_certs: no
+        return_content: true
+        validate_certs: false
       register: _librenms_devices
       until: _librenms_devices.json.devices | selectattr('display', 'equalto', inventory_hostname) | length > 0
       retries: 10
@@ -70,8 +70,8 @@
         url: "{{ librenms_url }}/api/v0/devices?type=all"
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
-        return_content: yes
-        validate_certs: no
+        return_content: true
+        validate_certs: false
       register: _librenms_devices
       until: inventory_hostname not in (_librenms_devices.json.devices | map(attribute='display'))
       retries: 3
@@ -82,8 +82,8 @@
         url: "{{ librenms_url }}/api/v0/devices?type=all"
         headers:
           X-Auth-Token: "{{ librenms_api_token }}"
-        return_content: yes
-        validate_certs: no
+        return_content: true
+        validate_certs: false
       vars:
         _registrations: "{{ librenms_device_list | map(attribute='display') | list }}"
         _unregistered: "{{ librenms_device_list | map(attribute='display') | list }}"

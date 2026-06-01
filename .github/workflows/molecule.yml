@@ -24,11 +24,8 @@ jobs:
       - name: Run molecule test
         uses: pokerops/ansible-utils@master
         with:
-          run: "make install requirements test"
-        env:
-          PY_COLORS: "1"
-          ANSIBLE_FORCE_COLOR: "1"
-          MOLECULE_SCENARIO: default
-          MOLECULE_SERVER_DISTRO: ${{ matrix.server }}
-          MOLECULE_CLIENT_DISTRO: ${{ matrix.client }}
-          MOLECULE_IMAGE_COMMAND: /lib/systemd/systemd
+          run: >
+            just
+            --set MOLECULE_SERVER_DISTRO ${{ matrix.server }}
+            --set MOLECULE_CLIENT_DISTRO ${{ matrix.client }}
+            requirements test
