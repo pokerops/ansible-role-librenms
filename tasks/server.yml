@@ -383,6 +383,7 @@
     remote_src: true
     group: root
     owner: root
+    mode: "0755"
 
 - name: Create librenms directories
   ansible.builtin.file:
