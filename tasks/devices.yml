@@ -65,7 +65,7 @@
         body_format: json
         body:
           hostname: "{{ item.hostname }}"
-          display: "{{ item.display | default(item.hostname) }}"
+          display_template: "{{ item.display | default(item.hostname) }}"
           version: "{{ item.version | default(librenms_client_snmp_version) }}"
           community: "{{ item.community | default(librenms_client_snmp_community) }}"
           port: "{{ item.port | default(librenms_client_snmp_port) }}"
@@ -88,7 +88,7 @@
         body_format: json
         body:
           field:
-            - display
+            - display_template
             - port
             - version
             - community
@@ -142,7 +142,7 @@
         body_format: json
         body:
           field:
-            - display
+            - display_template
             - port
             - version
             - community
