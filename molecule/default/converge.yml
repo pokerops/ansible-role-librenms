@@ -120,7 +120,7 @@
       ansible.builtin.set_fact:
         librenms_device_list:
           - hostname: localhost
-            display: server
+            display_template: server
             version: "{{ librenms_client_snmp_version }}"
             community: "{{ librenms_client_snmp_community }}"
       when: inventory_hostname in groups[server_group]
@@ -164,7 +164,7 @@
           until:
             - attr_json in _librenms_devices
             - attr_devices in _librenms_devices[attr_json]
-            - _librenms_devices[attr_json][attr_devices] | selectattr('display', 'equalto', inventory_hostname) | length > 0
+            - _librenms_devices[attr_json][attr_devices] | selectattr('display_template', 'equalto', inventory_hostname) | length > 0
           when: not librenms_client_register | bool
           retries: 10
           delay: 60
@@ -185,7 +185,7 @@
               ansible.builtin.fail:
                 msg: "devices [{{ ', '.join(_unregistered) }}] have not been registered to librenms"
               vars:
-                _registrations: "{{ librenms_device_list | default([]) | map(attribute='display') | list }}"
-                _registered: "{{ _librenms_devices.json.devices | map(attribute='display') | list }}"
+                _registrations: "{{ librenms_device_list | default([]) | map(attribute='display_template') | list }}"
+                _registered: "{{ _librenms_devices.json.devices | map(attribute='display_template') | list }}"
                 _unregistered: "{{ _registrations | difference(_registered) | list }}"
               when: _unregistered | length > 0

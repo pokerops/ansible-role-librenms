@@ -65,7 +65,7 @@
         body_format: json
         body:
           hostname: "{{ item.hostname }}"
-          display_template: "{{ item.display | default(item.hostname) }}"
+          display_template: "{{ item.display_template | default(item.hostname) }}"
           version: "{{ item.version | default(librenms_client_snmp_version) }}"
           community: "{{ item.community | default(librenms_client_snmp_community) }}"
           port: "{{ item.port | default(librenms_client_snmp_port) }}"
@@ -93,7 +93,7 @@
             - version
             - community
           data:
-            - "{{ item.display | default(item.hostname) }}"
+            - "{{ item.display_template | default(item.hostname) }}"
             - "{{ item.port | default(librenms_client_snmp_port) }}"
             - "{{ item.version | default(librenms_client_snmp_version) }}"
             - "{{ item.community | default(librenms_client_snmp_community) }}"
@@ -113,7 +113,7 @@
         body_format: json
         body:
           hostname: "{{ item.hostname }}"
-          display: "{{ item.display | default(item.hostname) }}"
+          display_template: "{{ item.display_template | default(item.hostname) }}"
           version: "{{ item.version | default(librenms_client_snmp_version) }}"
           port: "{{ item.port | default(librenms_client_snmp_port) }}"
           authlevel: "{{ (item.authlevel | default(librenms_client_snmp_authlevel)) if librenms_client_snmp_version == 'v3' else omit }}"
@@ -147,7 +147,7 @@
             - version
             - community
           data:
-            - "{{ item.display | default(item.hostname) }}"
+            - "{{ item.display_template | default(item.hostname) }}"
             - "{{ item.port | default(librenms_client_snmp_port) }}"
             - "{{ item.version | default(librenms_client_snmp_version) }}"
             - "{{ item.community | default(librenms_client_snmp_community) }}"
