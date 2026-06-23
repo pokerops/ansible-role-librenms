@@ -23,7 +23,7 @@
             body_format: json
             body:
               hostname: "{{ librenms_client_hostname }}"
-              display: "{{ librenms_client_display }}"
+              display_template: "{{ librenms_client_display }}"
               port: "{{ librenms_client_snmp_port }}"
               version: "{{ librenms_client_snmp_version }}"
               community: "{{ librenms_client_snmp_community if librenms_client_snmp_version != 'v3' else omit }}"
@@ -94,7 +94,7 @@
             body_format: json
             body:
               field:
-                - display
+                - display_template
                 - port
                 - version
                 - community

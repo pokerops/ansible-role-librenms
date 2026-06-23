@@ -89,7 +89,7 @@
       ansible.builtin.set_fact:
         librenms_device_list:
           - hostname: localhost
-            display: server
+            display_template: server
             version: "{{ librenms_client_snmp_version }}"
             community: "{{ side_effect_community }}"
       when: inventory_hostname in groups[server_group]
@@ -105,7 +105,6 @@
     - name: Flush handlers
       ansible.builtin.meta: flush_handlers
 
-  post_tasks:
     - name: Post converge verification tasks
       tags: verify
       block:
@@ -126,15 +125,6 @@
               X-Auth-Token: "{{ librenms_api_token }}"
             return_content: true
             validate_certs: false
-          register: _librenms_devices
-
-        - name: Check librenms registration
-          ansible.builtin.uri:
-            url: "{{ librenms_url }}/api/v0/devices?type=all"
-            headers:
-              X-Auth-Token: "{{ librenms_api_token }}"
-            return_content: true
-            validate_certs: false
           vars:
             attr_json: json
             attr_devices: devices
@@ -142,8 +132,8 @@
           until:
             - attr_json in _librenms_devices
             - attr_devices in _librenms_devices[attr_json]
-            - _librenms_devices[attr_json][attr_devices] | selectattr('display', 'equalto', inventory_hostname) | length > 0
-          when: librenms_client_register | bool
+            - _librenms_devices[attr_json][attr_devices] | selectattr('display_template', 'equalto', inventory_hostname) | length > 0
+          when: not librenms_client_register | bool
           retries: 10
           delay: 60
 
@@ -167,7 +157,7 @@
               ansible.builtin.fail:
                 msg: "devices [{{ ', '.join(_unregistered) }}] have not been registered to librenms"
               vars:
-                _registrations: "{{ librenms_device_list | map(attribute='display') | list }}"
-                _registered: "{{ _librenms_devices.json.devices | map(attribute='display') | list }}"
+                _registrations: "{{ librenms_device_list | default([]) | map(attribute='display_template') | list }}"
+                _registered: "{{ _librenms_devices.json.devices | map(attribute='display_template') | list }}"
                 _unregistered: "{{ _registrations | difference(_registered) | list }}"
               when: _unregistered | length > 0

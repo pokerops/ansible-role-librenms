@@ -38,9 +38,9 @@ $config['nagios_plugins'] = "/usr/lib/nagios/plugins";
 
 {% if 'active_directory' == librenms_auth_mechanism %}
 ## Active Directory authentication configuration
-$config['auth_ad_url'] = '{{ librenms_config_ldap_servers | map("map_format", "ldap://%s") | join(" ") }}';
+$config['auth_ad_url'] = '{{ librenms_config_ldap_servers | map("nephelaiio.plugins.map_format", "ldap://%s") | join(" ") }}';
 $config['auth_ad_domain'] = '{{ librenms_config_ldap_domain }}';
-$config['auth_ad_base_dn'] = '{{ librenms_config_ldap_domain | split_with(".") | map("map_format", "dc=%s") | join(",") }}';
+$config['auth_ad_base_dn'] = '{{ librenms_config_ldap_domain | nephelaiio.plugins.split_with(".") | map("nephelaiio.plugins.map_format", "dc=%s") | join(",") }}';
 $config['auth_ad_binduser'] = '{{ librenms_config_ldap_user }}';
 $config['auth_ad_bindpassword'] = '{{ librenms_config_ldap_pass }}';
 $config['auth_ad_timeout'] = 5;

@@ -1,8 +1,9 @@
 ---
 roles:
-  - name: nephelaiio.plugins
   - name: nephelaiio.nfs
   - name: geerlingguy.nginx
   - name: geerlingguy.mysql
   - name: geerlingguy.php
   - name: geerlingguy.php-versions
+collections:
+  - name: nephelaiio.plugins

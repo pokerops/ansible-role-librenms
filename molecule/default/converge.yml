@@ -1,12 +1,9 @@
 ---
 - name: Converge
-
   hosts: all
-
   become: true
-
-  pre_tasks:
-
+  any_errors_fatal: true
+  tasks:
     - name: Update apt cache.
       ansible.builtin.apt:
         update_cache: true
@@ -19,7 +16,6 @@
     - name: Set general facts
       tags: always
       block:
-
         - name: Gather localhost facts
           ansible.builtin.setup:
           delegate_to: localhost
@@ -30,13 +26,10 @@
             librenms_server_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
             librenms_client_hostname: "{{ hostvars['localhost']['ansible_default_ipv4']['address'] }}"
 
-  tasks:
-
     - name: Deploy librenms server
       when: inventory_hostname in groups[server_group]
       tags: server
       block:
-
         - name: Install librenms server components
           ansible.builtin.include_role:
             name: pokerops.librenms
@@ -98,7 +91,6 @@
       when: inventory_hostname in groups[server_group]
       tags: always
       block:
-
         - name: Create api token
           ansible.builtin.command: "php {{ librenms_root }}/addtoken.php {{ librenms_admin_user }}"
           register: _api_cmd
@@ -110,13 +102,12 @@
           vars:
             api_out: "{{ _api_cmd.stdout }}"
 
-    - name: Disable icmp checks
-      ansible.builtin.command: "{{ librenms_root }}/lnms config:set icmp_check false"
-      become_user: "{{ librenms_user }}"
-      become: true
-      when: inventory_hostname in groups[server_group]
-      changed_when: false
-      tags: server
+        - name: Disable icmp checks
+          ansible.builtin.command: "{{ librenms_root }}/lnms config:set icmp_check false"
+          become_user: "{{ librenms_user }}"
+          become: true
+          changed_when: false
+          tags: server
 
     - name: Register api token hash
       ansible.builtin.set_fact:
@@ -129,23 +120,28 @@
       ansible.builtin.set_fact:
         librenms_device_list:
           - hostname: localhost
-            display: server
+            display_template: server
             version: "{{ librenms_client_snmp_version }}"
             community: "{{ librenms_client_snmp_community }}"
       when: inventory_hostname in groups[server_group]
       tags: always
 
-    - name: Install librenms client components
-      ansible.builtin.include_role:
-        name: pokerops.librenms
+    - name: Install librenms components and devices
       tags: client
+      block:
+        - name: Install librenms client components
+          ansible.builtin.include_role:
+            name: pokerops.librenms
+            tasks_from: client
 
-  post_tasks:
+        - name: Install librenms client components
+          ansible.builtin.include_role:
+            name: pokerops.librenms
+            tasks_from: devices
 
     - name: Post converge verification tasks
       tags: verify
       block:
-
         - name: Verify local snmp daemon
           ansible.builtin.command: "snmpget -v {{ _version }} -c {{ _community }} localhost .1.3.6.1.2.1.1"
           vars:
@@ -168,15 +164,14 @@
           until:
             - attr_json in _librenms_devices
             - attr_devices in _librenms_devices[attr_json]
-            - _librenms_devices[attr_json][attr_devices] | selectattr('display', 'equalto', inventory_hostname) | length > 0
-          when: librenms_client_register | bool
+            - _librenms_devices[attr_json][attr_devices] | selectattr('display_template', 'equalto', inventory_hostname) | length > 0
+          when: not librenms_client_register | bool
           retries: 10
           delay: 60
 
         - name: Verify device registrations
           when: inventory_hostname in groups[server_group]
           block:
-
             - name: Query librenms registrations
               ansible.builtin.uri:
                 url: "{{ librenms_url }}/api/v0/devices?type=all"
@@ -190,7 +185,7 @@
               ansible.builtin.fail:
                 msg: "devices [{{ ', '.join(_unregistered) }}] have not been registered to librenms"
               vars:
-                _registrations: "{{ librenms_device_list | map(attribute='display') | list }}"
-                _registered: "{{ _librenms_devices.json.devices | map(attribute='display') | list }}"
+                _registrations: "{{ librenms_device_list | default([]) | map(attribute='display_template') | list }}"
+                _registered: "{{ _librenms_devices.json.devices | map(attribute='display_template') | list }}"
                 _unregistered: "{{ _registrations | difference(_registered) | list }}"
               when: _unregistered | length > 0
