@@ -1,0 +1,10 @@
+---
+- name: Prepare
+  hosts: clients
+  gather_facts: false
+  tasks:
+    - name: Fix sudo PAM configuration for alma10
+      ansible.builtin.shell: |
+        echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel-nopasswd
+      become: false
+      when: ansible_distribution == "AlmaLinux"
