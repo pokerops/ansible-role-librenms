@@ -3,10 +3,16 @@
   hosts: clients
   gather_facts: false
   tasks:
-    - name: Replace sudo PAM config to allow passwordless access in container
+    - name: Check if AlmaLinux
+      ansible.builtin.stat:
+        path: /etc/almalinux-release
+      register: almalinux_release
+
+    - name: Fix sudo PAM config for AlmaLinux containers
       ansible.builtin.copy:
         dest: /etc/pam.d/sudo
         content: |
           #%PAM-1.0
           session    include      system-auth
         mode: '0644'
+      when: almalinux_release.stat.exists
