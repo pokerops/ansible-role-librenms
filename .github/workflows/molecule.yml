@@ -20,6 +20,13 @@ jobs:
           - ubuntu2204
           - ubuntu2404
           - debian12
+        include:
+          - client: alma10
+            server: ubuntu2204
+            client_image: glillico/docker-almalinux10-ansible
+          - client: alma10
+            server: ubuntu2404
+            client_image: glillico/docker-almalinux10-ansible
     steps:
       - name: Run molecule test
         uses: pokerops/ansible-utils@master
@@ -28,4 +35,5 @@ jobs:
             just
             --set MOLECULE_SERVER_DISTRO ${{ matrix.server }}
             --set MOLECULE_CLIENT_DISTRO ${{ matrix.client }}
+            ${{ matrix.client_image && format('--set MOLECULE_CLIENT_IMAGE {0}', matrix.client_image) || '' }}
             requirements test
