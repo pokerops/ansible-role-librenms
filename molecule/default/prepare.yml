@@ -9,3 +9,14 @@
         chmod 0440 /etc/sudoers.d/nopasswd
       args:
         executable: /bin/bash
+
+    - name: Disable PAM in sudo configuration
+      ansible.builtin.shell: |
+        sed -i 's/^@include common-auth/#@include common-auth/' /etc/pam.d/sudo 2>/dev/null || true
+        sed -i 's/^auth/#auth/' /etc/pam.d/sudo 2>/dev/null || true
+        sed -i 's/^account/#account/' /etc/pam.d/sudo 2>/dev/null || true
+        echo "Defaults !pam_session" >> /etc/sudoers.d/nopam
+        echo "Defaults !authenticate" >> /etc/sudoers.d/nopam
+        chmod 0440 /etc/sudoers.d/nopam
+      args:
+        executable: /bin/bash
