@@ -3,20 +3,10 @@
   hosts: clients
   gather_facts: false
   tasks:
-    - name: Allow sudo without password
-      ansible.builtin.shell: |
-        echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopasswd
-        chmod 0440 /etc/sudoers.d/nopasswd
-      args:
-        executable: /bin/bash
-
-    - name: Disable PAM in sudo configuration
-      ansible.builtin.shell: |
-        sed -i 's/^@include common-auth/#@include common-auth/' /etc/pam.d/sudo 2>/dev/null || true
-        sed -i 's/^auth/#auth/' /etc/pam.d/sudo 2>/dev/null || true
-        sed -i 's/^account/#account/' /etc/pam.d/sudo 2>/dev/null || true
-        echo "Defaults !pam_session" >> /etc/sudoers.d/nopam
-        echo "Defaults !authenticate" >> /etc/sudoers.d/nopam
-        chmod 0440 /etc/sudoers.d/nopam
-      args:
-        executable: /bin/bash
+    - name: Replace sudo PAM config to allow passwordless access in container
+      ansible.builtin.copy:
+        dest: /etc/pam.d/sudo
+        content: |
+          #%PAM-1.0
+          session    include      system-auth
+        mode: '0644'
