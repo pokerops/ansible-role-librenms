@@ -24,5 +24,5 @@ jobs:
             just
             --set MOLECULE_SERVER_DISTRO ${{ matrix.server }}
             --set MOLECULE_CLIENT_DISTRO alma10
-            --set MOLECULE_CLIENT_IMAGE glillico/docker-almalinux10-ansible
+            --set MOLECULE_CLIENT_IMAGE dokken/almalinux-10
             requirements test
