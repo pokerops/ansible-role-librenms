@@ -1,10 +1,11 @@
 ---
 - name: Prepare
   hosts: clients
-  gather_facts: true
+  gather_facts: false
   tasks:
-    - name: Fix sudo PAM configuration for alma10
+    - name: Allow sudo without password
       ansible.builtin.shell: |
-        echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel-nopasswd
-      become: false
-      when: ansible_distribution == "AlmaLinux"
+        echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopasswd
+        chmod 0440 /etc/sudoers.d/nopasswd
+      args:
+        executable: /bin/bash
