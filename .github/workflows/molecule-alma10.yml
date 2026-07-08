@@ -1,5 +1,5 @@
 ---
-name: molecule
+name: molecule-alma10
 on:
   pull_request:
     branches:
@@ -16,10 +16,6 @@ jobs:
         server:
           - ubuntu2204
           - ubuntu2404
-        client:
-          - ubuntu2204
-          - ubuntu2404
-          - debian12
     steps:
       - name: Run molecule test
         uses: pokerops/ansible-utils@master
@@ -27,5 +23,6 @@ jobs:
           run: >
             just
             --set MOLECULE_SERVER_DISTRO ${{ matrix.server }}
-            --set MOLECULE_CLIENT_DISTRO ${{ matrix.client }}
+            --set MOLECULE_CLIENT_DISTRO alma10
+            --set MOLECULE_CLIENT_IMAGE glillico/docker-almalinux10-ansible
             requirements test

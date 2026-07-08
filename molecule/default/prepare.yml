@@ -1,7 +1,7 @@
 ---
 - name: Prepare
   hosts: clients
-  gather_facts: false
+  gather_facts: true
   tasks:
     - name: Fix sudo PAM configuration for alma10
       ansible.builtin.shell: |
