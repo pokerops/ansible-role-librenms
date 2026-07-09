@@ -26,7 +26,7 @@ platforms:
     published_ports:
       - 8080:80/tcp
   - name: client
-    image: geerlingguy/docker-${MOLECULE_CLIENT_DISTRO:-ubuntu2404}-ansible:latest
+    image: ${MOLECULE_CLIENT_IMAGE}
     cgroupns_mode: host
     tmpfs:
       - /run

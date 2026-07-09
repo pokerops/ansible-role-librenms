@@ -1,0 +1,28 @@
+---
+name: molecule-alma10
+on:
+  pull_request:
+    branches:
+      - master
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  molecule:
+    name: molecule tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        server:
+          - ubuntu2204
+          - ubuntu2404
+    steps:
+      - name: Run molecule test
+        uses: pokerops/ansible-utils@master
+        with:
+          run: >
+            just
+            --set MOLECULE_SERVER_DISTRO ${{ matrix.server }}
+            --set MOLECULE_CLIENT_DISTRO alma10
+            --set MOLECULE_CLIENT_IMAGE dokken/almalinux-10
+            requirements test
